@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="분실물 등록, 분실물 찾기, 등록된 분실물 정보를 제공하는 분실물 찾기 서비스입니다.">
+    <title>분실물 찾기 서비스</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="nav-container">
+            <nav class="nav">
+                <a href="index.html" class="logo">부용고 분실물 찾기</a>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="index.html" class="nav-link active">홈</a></li>
+                    <li class="nav-item"><a href="list.html" class="nav-link">등록된 분실물</a></li>
+                    <li class="nav-item"><a href="register.html" class="nav-link">분실물 등록/찾기</a></li>
+                </ul>
+                <div id="auth-container">
+                    <button id="loginBtn" class="auth-btn" onclick="openAuthModal()">로그인/회원가입</button>
+                </div>
+                <div id="user-info" style="display: none;"></div>
+            </nav>
+        </div>
+    </header>
+    <main class="main-content">
+        <div class="container">
+            <section id="home" class="section active">
+                <h1 class="section-title">분실물 찾기 서비스</h1>
+                <div class="search-container">
+                    <div class="search-box">
+                        <input type="text" class="search-input" placeholder="분실물을 검색해보세요...">
+                        <button class="search-button">검색</button>
+                    </div>
+                </div>
+                <div class="items-grid">
+                    <div class="item-card" onclick="location.href='list.html'">
+                        <div class="item-image">휴대폰</div>
+                        <div class="item-content">
+                            <div class="post-type-badge lost">분실물</div>
+                            <div class="item-category">전자기기</div>
+                            <h3 class="item-title">아이폰 15 실버</h3>
+                            <p class="item-description">강남역 지하철에서 분실한 아이폰 15입니다. 투명한 실리콘 케이스가 씌워져 있고, 화면에 귀여운 고양이 배경화면이 있습니다.</p>
+                            <div class="item-meta">
+                                <span class="item-date">2024-01-15</span>
+                                <span class="item-location">강남역</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item-card" onclick="location.href='list.html'">
+                        <div class="item-image">지갑</div>
+                        <div class="item-content">
+                            <div class="post-type-badge found">습득물</div>
+                            <div class="item-category">지갑/카드</div>
+                            <h3 class="item-title">검은색 가죽 지갑</h3>
+                            <p class="item-description">서울역 1번 출구 근처에서 주운 검은색 가죽 지갑입니다. 안에 신분증과 여러 장의 카드가 들어있습니다.</p>
+                            <div class="item-meta">
+                                <span class="item-date">2024-01-14</span>
+                                <span class="item-location">서울역</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item-card" onclick="location.href='list.html'">
+                        <div class="item-image">가방</div>
+                        <div class="item-content">
+                            <div class="post-type-badge found">습득물</div>
+                            <div class="item-category">가방/백팩</div>
+                            <h3 class="item-title">나이키 검은색 백팩</h3>
+                            <p class="item-description">홍대입구역에서 주운 나이키 검은색 백팩입니다. 노트북과 충전기가 들어있고, 앞쪽 주머니에 연필꽂이가 있습니다.</p>
+                            <div class="item-meta">
+                                <span class="item-date">2024-01-13</span>
+                                <span class="item-location">홍대입구역</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section id="register" class="section">
+                <h2 class="section-title">주운 분실물 등록</h2>
+                <p style="text-align: center; margin-bottom: 30px; color: #666;">주운 물건을 등록하여 주인을 찾아주세요</p>
+                <div class="form-container">
+                    <form id="foundItemForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="itemName">물건명 <span class="required">*</span></label>
+                                <input type="text" id="itemName" name="itemName" required placeholder="예: 검은색 지갑">
+                            </div>
+                            <div class="form-group">
+                                <label for="category">분류 <span class="required">*</span></label>
+                                <select id="category" name="category" required>
+                                    <option value="">분류를 선택하세요</option>
+                                    <option value="전자기기">전자기기</option>
+                                    <option value="지갑/카드">지갑/카드</option>
+                                    <option value="의류/신발">의류/신발</option>
+                                    <option value="가방/백팩">가방/백팩</option>
+                                    <option value="서적/문구">서적/문구</option>
+                                    <option value="악세서리">악세서리</option>
+                                    <option value="기타">기타</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="foundDate">발견 날짜 <span class="required">*</span></label>
+                                <input type="date" id="foundDate" name="foundDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="foundTime">발견 시간</label>
+                                <input type="time" id="foundTime" name="foundTime">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="foundLocation">발견 장소 <span class="required">*</span></label>
+                            <input type="text" id="foundLocation" name="foundLocation" required placeholder="예: 서울역 1번 출구 근처">
+                        </div>
+                        <div class="form-group">
+                            <label for="description">상세 설명</label>
+                            <textarea id="description" name="description" placeholder="물건의 특징, 브랜드, 색상, 안에 들어있는 물건 등을 자세히 설명해주세요"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="contactName">연락처 이름 <span class="required">*</span></label>
+                                <input type="text" id="contactName" name="contactName" required placeholder="본인 이름">
+                            </div>
+                            <div class="form-group">
+                                <label for="contactPhone">연락처 전화번호 <span class="required">*</span></label>
+                                <input type="tel" id="contactPhone" name="contactPhone" required placeholder="010-1234-5678">
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-button">주운 물건 등록하기</button>
+                    </form>
+                </div>
+            </section>
+            <section id="search" class="section">
+                <h2 class="section-title">잃어버린 분실물 게시</h2>
+                <p style="text-align: center; margin-bottom: 30px; color: #666;">잃어버린 물건을 찾기 위해 게시글을 작성하세요</p>
+                <div class="lost-form">
+                    <form id="lostItemForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="lostItemName">잃어버린 물건명 <span class="required">*</span></label>
+                                <input type="text" id="lostItemName" name="lostItemName" required placeholder="예: 아이폰 15">
+                            </div>
+                            <div class="form-group">
+                                <label for="lostCategory">분류 <span class="required">*</span></label>
+                                <select id="lostCategory" name="lostCategory" required>
+                                    <option value="">분류를 선택하세요</option>
+                                    <option value="전자기기">전자기기</option>
+                                    <option value="지갑/카드">지갑/카드</option>
+                                    <option value="의류/신발">의류/신발</option>
+                                    <option value="가방/백팩">가방/백팩</option>
+                                    <option value="서적/문구">서적/문구</option>
+                                    <option value="악세서리">악세서리</option>
+                                    <option value="기타">기타</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="lostDate">분실 날짜 <span class="required">*</span></label>
+                                <input type="date" id="lostDate" name="lostDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lostTime">분실 시간</label>
+                                <input type="time" id="lostTime" name="lostTime">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="lostLocation">분실 장소 <span class="required">*</span></label>
+                            <input type="text" id="lostLocation" name="lostLocation" required placeholder="예: 강남역 지하철">
+                        </div>
+                        <div class="form-group">
+                            <label for="lostDescription">상세 설명</label>
+                            <textarea id="lostDescription" name="lostDescription" placeholder="물건의 특징, 브랜드, 색상, 특별한 표시 등을 자세히 설명해주세요"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="lostContactName">연락처 이름 <span class="required">*</span></label>
+                                <input type="text" id="lostContactName" name="lostContactName" required placeholder="본인 이름">
+                            </div>
+                            <div class="form-group">
+                                <label for="lostContactPhone">연락처 전화번호 <span class="required">*</span></label>
+                                <input type="tel" id="lostContactPhone" name="lostContactPhone" required placeholder="010-1234-5678">
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-button">분실물 찾기 게시하기</button>
+                    </form>
+                </div>
+            </section>
+            <section id="list" class="section">
+                <h2 class="section-title">등록된 분실물 목록</h2>
+                <div class="items-grid" id="itemsGrid">
+                    <!-- 등록된 분실물들이 여기에 표시됩니다 -->
+                </div>
+                <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>더 많은 게시글을 불러오는 중...</p>
+                </div>
+            </section>
+        </div>
+    </main>
+    <footer style="text-align:center; color:#888; padding:24px 0 12px 0; font-size:0.95em;">
+        &copy; 2024 분실물 찾기 서비스. All rights reserved.
+    </footer>
+
+    <!-- 통합 인증 모달 -->
+    <div id="authModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeAuthModal()">&times;</span>
+            
+            <!-- 로그인 폼 -->
+            <div id="loginForm" class="auth-form">
+                <h2>로그인</h2>
+                <form id="emailLoginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">이메일</label>
+                        <input type="email" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">비밀번호</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="submit-button">로그인</button>
+                </form>
+                
+                <div class="social-login">
+                    <p style="text-align: center; margin: 20px 0; color: #666;">또는</p>
+                    <button onclick="signInWithGoogle()" class="social-btn google-btn">
+                        Google로 로그인
+                    </button>
+                    <button onclick="signInWithKakao()" class="social-btn kakao-btn">
+                        카카오로 로그인
+                    </button>
+                </div>
+                
+                <div class="auth-links">
+                    <a href="#" onclick="showSignupForm()" class="auth-link">회원가입</a>
+                    <span class="auth-separator">|</span>
+                    <a href="#" onclick="showPasswordReset()" class="auth-link">비밀번호 찾기</a>
+                </div>
+            </div>
+            
+            <!-- 회원가입 폼 -->
+            <div id="signupForm" class="auth-form" style="display: none;">
+                <h2>회원가입</h2>
+                <form id="emailSignupForm">
+                    <div class="form-group">
+                        <label for="signupEmail">이메일</label>
+                        <input type="email" id="signupEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">비밀번호 (6자 이상)</label>
+                        <input type="password" id="signupPassword" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPasswordConfirm">비밀번호 확인</label>
+                        <input type="password" id="signupPasswordConfirm" required minlength="6">
+                    </div>
+                    <button type="submit" class="submit-button">회원가입</button>
+                </form>
+                
+                <div class="auth-links">
+                    <a href="#" onclick="showLoginForm()" class="auth-link">로그인으로 돌아가기</a>
+                </div>
+            </div>
+            
+            <!-- 비밀번호 재설정 폼 -->
+            <div id="passwordResetForm" class="auth-form" style="display: none;">
+                <h2>비밀번호 재설정</h2>
+                <p style="text-align: center; margin-bottom: 20px; color: #666;">
+                    가입한 이메일 주소를 입력하시면 비밀번호 재설정 링크를 보내드립니다.
+                </p>
+                <form id="resetPasswordForm">
+                    <div class="form-group">
+                        <label for="resetEmail">이메일</label>
+                        <input type="email" id="resetEmail" required>
+                    </div>
+                    <button type="submit" class="submit-button">재설정 링크 보내기</button>
+                </form>
+                
+                <div class="auth-links">
+                    <a href="#" onclick="showLoginForm()" class="auth-link">로그인으로 돌아가기</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="supabase-config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html> 

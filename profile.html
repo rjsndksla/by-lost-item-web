@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로필 - 분실물 찾기</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="nav-container">
+            <nav class="nav">
+                <a href="index.html" class="logo">부용고 분실물 찾기</a>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="index.html" class="nav-link">홈</a></li>
+                    <li class="nav-item"><a href="list.html" class="nav-link">등록된 분실물</a></li>
+                    <li class="nav-item"><a href="search.html" class="nav-link">분실물 찾기</a></li>
+                    <li class="nav-item"><a href="register.html" class="nav-link">분실물 등록</a></li>
+                </ul>
+                <div id="auth-container">
+                    <button id="loginBtn" class="auth-btn" onclick="openAuthModal()">로그인/회원가입</button>
+                </div>
+                <div id="user-info" style="display: none;"></div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="profile-container">
+        <div class="profile-sidebar">
+            <div class="user-info">
+                <h2>내 프로필</h2>
+                <p class="user-email-display"></p>
+            </div>
+        </div>
+        
+        <div class="profile-content">
+            <h3>내가 작성한 게시글</h3>
+            <div class="posts-grid" id="userPosts">
+                <!-- 게시글이 여기에 동적으로 로드됩니다 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="supabase-config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html> 
