@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>동아리 등록 - 부용고 온라인 홍보관</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="nav-container">
+      <nav class="nav">
+        <a href="buyong.html" class="back-to-hub-btn">← 부용관으로 돌아가기</a>
+        <a href="club.html" class="logo">동아리 온라인 홍보관</a>
+        <ul class="nav-menu">
+          <li class="nav-item"><a href="club.html" class="nav-link">홈</a></li>
+          <li class="nav-item"><a href="club-list.html" class="nav-link">동아리 목록</a></li>
+          <li class="nav-item"><a href="club-register.html" class="nav-link active">동아리 등록</a></li>
+        </ul>
+        <div id="auth-container">
+          <button id="loginBtn" class="auth-btn" onclick="openAuthModal()">로그인/회원가입</button>
+        </div>
+        <div id="user-info" style="display: none;"></div>
+      </nav>
+    </div>
+  </header>
+  <div class="club-container">
+    <form class="club-register-form" id="clubRegisterForm" enctype="multipart/form-data">
+      <label>동아리 이름<br><input type="text" name="club-name" required></label><br>
+      <label>카테고리<br>
+        <select name="club-category" required>
+          <option value="">카테고리 선택</option>
+          <option value="nature">자연</option>
+          <option value="humanities">인문</option>
+          <option value="art">예체능</option>
+        </select>
+      </label><br>
+      <label>부장 인스타 아이디 및 전화번호<br><input type="text" name="club-contact" placeholder="@insta_id / 010-xxxx-xxxx" required></label><br>
+      <label>동아리 포스터 이미지<br>
+        <label for="clubPosterInput" class="poster-upload-label" style="display:inline-block; padding:10px 24px; background:#e3eafc; color:#23408e; border-radius:8px; cursor:pointer; font-weight:500; margin-bottom:10px;">이미지 업로드</label>
+        <input type="file" name="club-poster" accept="image/*" id="clubPosterInput" style="display:none;">
+        <div id="posterPreview" style="margin-top:14px;"></div>
+      </label><br>
+      <label>간단 동아리 소개글<br><textarea name="club-desc" rows="4" required></textarea></label><br>
+      <button type="submit" class="club-register-btn">동아리 등록</button>
+    </form>
+  </div>
+  <!-- 인증 모달 추가 (club.html과 동일) -->
+  <div id="authModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="close" onclick="closeAuthModal()">&times;</span>
+      <!-- 로그인 폼 -->
+      <div id="loginForm" class="auth-form">
+        <h2>로그인</h2>
+        <form id="emailLoginForm">
+          <div class="form-group">
+            <label for="loginEmail">이메일</label>
+            <input type="email" id="loginEmail" required>
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">비밀번호</label>
+            <input type="password" id="loginPassword" required>
+          </div>
+          <button type="submit" class="submit-button">로그인</button>
+        </form>
+        <div class="social-login">
+          <p style="text-align: center; margin: 20px 0; color: #666;">또는</p>
+          <button onclick="signInWithGoogle()" class="social-btn google-btn">Google로 로그인</button>
+        </div>
+        <div class="auth-links">
+          <a href="#" onclick="showSignupForm()" class="auth-link">회원가입</a>
+          <span class="auth-separator">|</span>
+          <a href="#" onclick="showPasswordReset()" class="auth-link">비밀번호 찾기</a>
+        </div>
+      </div>
+      <!-- 회원가입 폼 -->
+      <div id="signupForm" class="auth-form" style="display: none;">
+        <h2>회원가입</h2>
+        <form id="emailSignupForm">
+          <div class="form-group">
+            <label for="signupEmail">이메일</label>
+            <input type="email" id="signupEmail" required>
+          </div>
+          <div class="form-group">
+            <label for="signupPassword">비밀번호 (6자 이상)</label>
+            <input type="password" id="signupPassword" required minlength="6">
+          </div>
+          <div class="form-group">
+            <label for="signupPasswordConfirm">비밀번호 확인</label>
+            <input type="password" id="signupPasswordConfirm" required minlength="6">
+          </div>
+          <button type="submit" class="submit-button">회원가입</button>
+        </form>
+        <div class="auth-links">
+          <a href="#" onclick="showLoginForm()" class="auth-link">로그인으로 돌아가기</a>
+        </div>
+      </div>
+      <!-- 비밀번호 재설정 폼 -->
+      <div id="passwordResetForm" class="auth-form" style="display: none;">
+        <h2>비밀번호 재설정</h2>
+        <p style="text-align: center; margin-bottom: 20px; color: #666;">
+          가입한 이메일 주소를 입력하시면 비밀번호 재설정 링크를 보내드립니다.
+        </p>
+        <form id="resetPasswordForm">
+          <div class="form-group">
+            <label for="resetEmail">이메일</label>
+            <input type="email" id="resetEmail" required>
+          </div>
+          <button type="submit" class="submit-button">재설정 링크 보내기</button>
+        </form>
+        <div class="auth-links">
+          <a href="#" onclick="showLoginForm()" class="auth-link">로그인으로 돌아가기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="script.js"></script>
+  <script>
+    // 이미지 미리보기
+    document.getElementById('clubPosterInput').addEventListener('change', function(e) {
+      const preview = document.getElementById('posterPreview');
+      preview.innerHTML = '';
+      const file = e.target.files[0];
+      if (file) {
+        const img = document.createElement('img');
+        img.style.maxWidth = '220px';
+        img.style.maxHeight = '220px';
+        img.style.borderRadius = '14px';
+        img.style.boxShadow = '0 4px 16px rgba(44,62,80,0.13)';
+        img.style.border = '2px solid #e3eafc';
+        img.style.display = 'block';
+        img.style.margin = '0 auto';
+        preview.appendChild(img);
+        img.src = URL.createObjectURL(file);
+      }
+    });
+  </script>
+</body>
+</html> 

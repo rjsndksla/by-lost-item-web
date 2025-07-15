@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>동아리 홍보관 홈</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <div class="club-container">
+    <a href="buyong.html" class="back-to-hub-btn">← 부용관으로 돌아가기</a>
+    <header class="club-header">
+      <h1>동아리 홍보관 홈</h1>
+      <button class="club-list-btn" onclick="location.href='club-list.html'">동아리 목록</button>
+      <button class="club-register-btn" onclick="location.href='club-register.html'">동아리 등록</button>
+    </header>
+    <div class="club-search-filter">
+      <input type="text" id="club-home-search-input" placeholder="동아리 이름/소개 검색...">
+    </div>
+    <main class="club-list-area">
+      <div class="club-list" id="club-home-list">
+        <!-- JS로 동아리 목록 렌더링 -->
+      </div>
+    </main>
+  </div>
+</body>
+</html> 

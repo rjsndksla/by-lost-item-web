@@ -281,7 +281,7 @@ async function checkAuthState() {
                         <span class="menu-arrow">▼</span>
                     </button>
                     <div class="user-menu-content">
-                        <a href="profile.html">내 프로필</a>
+                        <a href="${window.location.pathname.includes('club') ? 'club_profile.html' : 'profile.html'}">내 프로필</a>
                         <a href="#" onclick="handleLogout()">로그아웃</a>
                     </div>
                 </div>
@@ -609,51 +609,89 @@ async function initializeProfilePage() {
 
 async function loadUserPosts(userId) {
     try {
-        const { data: posts, error } = await supabase
-            .from('posts')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
-
+        // club_profile.html: clubs 테이블, profile.html: posts 테이블
+        let posts, error;
+        const postsGrid = document.getElementById('userPosts') || document.getElementById('userClubPosts');
+        if (!postsGrid) return;
+        if (postsGrid.id === 'userClubPosts') {
+            // club_profile.html: clubs 테이블
+            ({ data: posts, error } = await supabase
+                .from('clubs')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false }));
+        } else {
+            // profile.html: posts 테이블
+            ({ data: posts, error } = await supabase
+                .from('posts')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false }));
+        }
         if (error) throw error;
-
-        const postsGrid = document.getElementById('userPosts');
         if (!posts || posts.length === 0) {
             postsGrid.innerHTML = '<p class="no-posts">작성한 게시글이 없습니다.</p>';
             return;
         }
-
-        postsGrid.innerHTML = posts.map(post => `
-            <div class="post-card" data-post-id="${post.id}">
-                <div class="post-header">
-                    <h3>${post.title || ''}</h3>
-                    <div class="post-actions">
-                        <button class="action-button" onclick="toggleActionMenu(this)">⋮</button>
-                        <div class="action-menu">
-                            <button onclick="editPost('${post.id}')">수정</button>
-                            <button class="delete-btn" onclick="deletePost('${post.id}')">삭제</button>
+        postsGrid.innerHTML = posts.map(post => {
+            if (postsGrid.id === 'userClubPosts') {
+                // clubs 테이블 렌더링
+                return `
+                <div class="post-card" data-post-id="${post.id}">
+                    <div class="post-header">
+                        <h3>${post.club_name || ''}</h3>
+                        <div class="post-actions">
+                            <button class="action-button" onclick="toggleActionMenu(this)">⋮</button>
+                            <div class="action-menu">
+                                <button onclick="editClubPost('${post.id}')">수정</button>
+                                <button class="delete-btn" onclick="deleteClubPost('${post.id}')">삭제</button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="post-content">
-                    <div class="post-type-badge ${post.type === 'lost' ? 'lost' : 'found'}">
-                        ${post.type === 'lost' ? '분실물' : '습득물'}
+                    <div class="post-content">
+                        <p><strong>카테고리:</strong> ${post.club_category || ''}</p>
+                        <p><strong>소개:</strong> ${post.club_desc || ''}</p>
+                        <p><strong>연락처:</strong> ${post.club_contact || ''}</p>
+                        ${post.poster_url ? `<img src="${post.poster_url}" alt="동아리 포스터" class="post-image">` : ''}
                     </div>
-                    <p><strong>분류:</strong> ${post.category || ''}</p>
-                    <p><strong>장소:</strong> ${post.location || ''}</p>
-                    <p><strong>날짜:</strong> ${post.date_lost ? new Date(post.date_lost).toLocaleDateString() : ''}</p>
-                    ${post.time_lost ? `<p><strong>시간:</strong> ${post.time_lost}</p>` : ''}
-                    ${post.description ? `<p><strong>설명:</strong> ${post.description}</p>` : ''}
-                    ${post.image_url ? `<img src="${post.image_url}" alt="물건 이미지" class="post-image">` : ''}
                 </div>
-            </div>
-        `).join('');
-
-        // 다른 메뉴가 열려있을 때 문서 클릭 시 닫기
+                `;
+            } else {
+                // posts 테이블 렌더링
+                return `
+                <div class="post-card" data-post-id="${post.id}">
+                    <div class="post-header">
+                        <h3>${post.title || ''}</h3>
+                        <div class="post-actions">
+                            <button class="action-button" onclick="toggleActionMenu(this)">⋮</button>
+                            <div class="action-menu">
+                                <button onclick="editPost('${post.id}')">수정</button>
+                                <button class="delete-btn" onclick="deletePost('${post.id}')">삭제</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="post-content">
+                        <div class="post-type-badge ${post.type === 'lost' ? 'lost' : 'found'}">
+                            ${post.type === 'lost' ? '분실물' : '습득물'}
+                        </div>
+                        <p><strong>분류:</strong> ${post.category || ''}</p>
+                        <p><strong>장소:</strong> ${post.location || ''}</p>
+                        <p><strong>날짜:</strong> ${post.date_lost ? new Date(post.date_lost).toLocaleDateString() : ''}</p>
+                        ${post.time_lost ? `<p><strong>시간:</strong> ${post.time_lost}</p>` : ''}
+                        ${post.description ? `<p><strong>설명:</strong> ${post.description}</p>` : ''}
+                        ${post.image_url ? `<img src="${post.image_url}" alt="물건 이미지" class="post-image">` : ''}
+                    </div>
+                </div>
+                `;
+            }
+        }).join('');
         document.addEventListener('click', closeAllActionMenus);
     } catch (error) {
         console.error('게시글 로드 중 오류 발생:', error);
-        document.getElementById('userPosts').innerHTML = '<p class="error-message">게시글을 불러오는 중 오류가 발생했습니다.</p>';
+        const postsGrid = document.getElementById('userPosts') || document.getElementById('userClubPosts');
+        if (postsGrid) {
+            postsGrid.innerHTML = '<p class="error-message">게시글을 불러오는 중 오류가 발생했습니다.</p>';
+        }
     }
 }
 
@@ -746,6 +784,15 @@ window.deletePost = deletePost;
 // 페이지별 초기화
 if (window.location.pathname.endsWith('profile.html')) {
     window.addEventListener('DOMContentLoaded', initializeProfilePage);
+} else if (
+    window.location.pathname.endsWith('club.html') ||
+    window.location.pathname.endsWith('club-list.html') ||
+    window.location.pathname.endsWith('club-register.html')
+) {
+    window.addEventListener('DOMContentLoaded', function() {
+        initializeAuthModal();
+        checkAuthState();
+    });
 } 
 
 // 이미지 업로드 관련 함수
@@ -1000,6 +1047,7 @@ async function loadPosts() {
         }
 
         const itemsGrid = document.querySelector('.items-grid');
+        if (!itemsGrid) return; // 요소가 없으면 함수 종료
         if (!posts || posts.length === 0) {
             itemsGrid.innerHTML = `
                 <div style="text-align: center; color: #666; grid-column: 1 / -1; padding: 40px;">
@@ -1212,6 +1260,15 @@ if (window.location.pathname.endsWith('profile.html')) {
         initializeAuthModal();
         checkAuthState();
     });
+} else if (
+    window.location.pathname.endsWith('club.html') ||
+    window.location.pathname.endsWith('club-list.html') ||
+    window.location.pathname.endsWith('club-register.html')
+) {
+    window.addEventListener('DOMContentLoaded', function() {
+        initializeAuthModal();
+        checkAuthState();
+    });
 } 
 
 // 홈페이지 최신 게시물 로드 (개선된 에러 처리)
@@ -1345,3 +1402,280 @@ window.addEventListener('DOMContentLoaded', function() {
     if (typeFilter) typeFilter.addEventListener('change', loadPosts);
     if (categoryFilter) categoryFilter.addEventListener('change', loadPosts);
 }); 
+
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('clubRegisterForm');
+  if (!form) return;
+
+  // 메시지 div가 없으면 생성
+  let messageDiv = document.getElementById('register-message');
+  if (!messageDiv) {
+    messageDiv = document.createElement('div');
+    messageDiv.id = 'register-message';
+    form.parentNode.insertBefore(messageDiv, form.nextSibling);
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    messageDiv.textContent = '등록 중...';
+
+    // 입력값 가져오기 (name 속성 기준)
+    const club_name = form.elements['club-name'].value.trim();
+    const club_category = form.elements['club-category'].value.trim();
+    const club_desc = form.elements['club-desc'].value.trim();
+    const club_contact = form.elements['club-contact'].value.trim();
+    const posterFile = document.getElementById('clubPosterInput').files[0];
+
+    // 로그인된 유저 정보
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      messageDiv.textContent = '로그인 후 이용해주세요.';
+      return;
+    }
+
+    // 포스터 업로드
+    let poster_url = null;
+    if (posterFile) {
+      const fileExt = posterFile.name.split('.').pop();
+      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+      const { error } = await supabase.storage
+        .from('club-posters')
+        .upload(filePath, posterFile, { cacheControl: '3600', upsert: false });
+      if (error) {
+        messageDiv.textContent = '포스터 업로드 실패: ' + error.message;
+        return;
+      }
+      const { data: publicUrlData } = supabase
+        .storage
+        .from('club-posters')
+        .getPublicUrl(filePath);
+      poster_url = publicUrlData.publicUrl;
+    }
+
+    // clubs 테이블에 데이터 삽입
+    const { error: insertError } = await supabase
+      .from('clubs')
+      .insert([{
+        user_id: user.id,
+        club_name,
+        club_category,
+        club_desc,
+        club_contact,
+        poster_url
+      }]);
+
+    if (insertError) {
+      messageDiv.textContent = '등록 실패: ' + insertError.message;
+    } else {
+      messageDiv.textContent = '동아리 등록 완료!';
+      form.reset();
+      document.getElementById('posterPreview').innerHTML = '';
+    }
+  });
+}); 
+
+// 동아리 목록 로드 및 렌더링 (club-list.html)
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('club-list')) {
+    loadClubList();
+    // 카테고리 필터 버튼 이벤트
+    document.querySelectorAll('.club-category-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.club-category-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        loadClubList(this.dataset.category);
+      });
+    });
+  }
+});
+
+async function loadClubList(category = 'all') {
+  const listDiv = document.getElementById('club-list');
+  if (!listDiv) return;
+  listDiv.innerHTML = '<div style="text-align:center; padding:40px; color:#888;">불러오는 중...</div>';
+  let query = supabase.from('clubs').select('*').order('created_at', { ascending: false });
+  if (category && category !== 'all') {
+    query = query.eq('club_category', category);
+  }
+  const { data, error } = await query;
+  if (error) {
+    listDiv.innerHTML = '<div style="color:red; text-align:center;">동아리 목록을 불러오지 못했습니다.<br>' + error.message + '</div>';
+    return;
+  }
+  if (!data || data.length === 0) {
+    listDiv.innerHTML = '<div style="text-align:center; color:#888; padding:40px;">등록된 동아리가 없습니다.</div>';
+    return;
+  }
+  listDiv.innerHTML = data.map(club => `
+    <div class="item-card item-card-flex">
+      <div class="item-image item-image-left">
+        ${club.poster_url ? `<img src="${club.poster_url}" alt="포스터" style="width:160px;height:200px;object-fit:contain;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(44,62,80,0.08);">` : '<div class="no-image">No Image</div>'}
+      </div>
+      <div class="item-content item-content-right">
+        <div class="item-title">${club.club_name || ''}</div>
+        <div class="item-description">${club.club_desc || ''}</div>
+        <div class="item-meta" style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+          <span class="item-location" style="color:#23408e;font-weight:500;">${club.club_contact || ''}</span>
+          <span class="item-category" style="background:#e3eafc;color:#23408e;padding:4px 10px;border-radius:6px;font-size:0.95em;">${club.club_category || ''}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+} 
+
+// 커스텀 삭제 확인 모달 생성 함수
+function showDeleteConfirmModal(onConfirm) {
+  // 기존 모달이 있으면 제거
+  const existing = document.getElementById('deleteConfirmModal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'deleteConfirmModal';
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.width = '100vw';
+  modal.style.height = '100vh';
+  modal.style.background = 'rgba(0,0,0,0.25)';
+  modal.style.display = 'flex';
+  modal.style.alignItems = 'center';
+  modal.style.justifyContent = 'center';
+  modal.style.zIndex = '9999';
+  modal.innerHTML = `
+    <div style="background:#fff;padding:32px 36px;border-radius:14px;box-shadow:0 4px 24px rgba(44,62,80,0.13);min-width:320px;text-align:center;">
+      <div style="font-size:1.15em;font-weight:600;margin-bottom:24px;">게시글을 삭제하시겠습니까?</div>
+      <div style="display:flex;gap:18px;justify-content:center;">
+        <button id="deleteConfirmBtn" style="background:#e74c3c;color:#fff;padding:10px 24px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">삭제</button>
+        <button id="deleteCancelBtn" style="background:#e3eafc;color:#23408e;padding:10px 24px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">취소</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.getElementById('deleteConfirmBtn').onclick = () => {
+    modal.remove();
+    onConfirm();
+  };
+  document.getElementById('deleteCancelBtn').onclick = () => {
+    modal.remove();
+  };
+}
+
+// 성공 토스트 팝업 함수
+function showSuccessToast(message) {
+  // 기존 토스트가 있으면 제거
+  const existing = document.getElementById('successToast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'successToast';
+  toast.style.position = 'fixed';
+  toast.style.top = '50px';
+  toast.style.left = '50%';
+  toast.style.transform = 'translateX(-50%)';
+  toast.style.background = 'rgba(80, 220, 120, 0.92)'; // 연두색 계열 반투명
+  toast.style.color = '#fff';
+  toast.style.padding = '16px 32px';
+  toast.style.borderRadius = '8px';
+  toast.style.fontWeight = '600';
+  toast.style.fontSize = '1.1em';
+  toast.style.boxShadow = '0 4px 16px rgba(44,62,80,0.13)';
+  toast.style.zIndex = '10000';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.remove(); }, 1500);
+}
+
+// club_profile.html: 동아리 게시글 삭제 (커스텀 모달 적용)
+window.deleteClubPost = async function(postId) {
+  showDeleteConfirmModal(async () => {
+    const { error } = await supabase.from('clubs').delete().eq('id', postId);
+    if (error) {
+      alert('삭제 실패: ' + error.message);
+      return;
+    }
+    // 삭제 후 해당 카드 제거
+    const card = document.querySelector(`[data-post-id="${postId}"]`);
+    if (card) card.remove();
+    // 게시글이 모두 삭제된 경우 메시지 표시
+    const postsGrid = document.getElementById('userClubPosts');
+    if (postsGrid && postsGrid.children.length === 0) {
+      postsGrid.innerHTML = '<p class="no-posts">등록한 동아리 게시글이 없습니다.</p>';
+    }
+    showSuccessToast('성공적으로 삭제되었습니다!');
+  });
+};
+
+// club_profile.html: 동아리 게시글 수정 (커스텀 모달)
+window.editClubPost = async function(postId) {
+  // 기존 데이터 불러오기
+  const { data: post, error } = await supabase.from('clubs').select('*').eq('id', postId).single();
+  if (error || !post) {
+    showSuccessToast('게시글 정보를 불러오지 못했습니다.');
+    return;
+  }
+  // 기존 모달이 있으면 제거
+  const existing = document.getElementById('editClubModal');
+  if (existing) existing.remove();
+  // 카테고리 옵션
+  const categories = [
+    { value: 'nature', label: '자연' },
+    { value: 'humanities', label: '인문' },
+    { value: 'art', label: '예체능' }
+  ];
+  // 모달 생성
+  const modal = document.createElement('div');
+  modal.id = 'editClubModal';
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.width = '100vw';
+  modal.style.height = '100vh';
+  modal.style.background = 'rgba(0,0,0,0.25)';
+  modal.style.display = 'flex';
+  modal.style.alignItems = 'center';
+  modal.style.justifyContent = 'center';
+  modal.style.zIndex = '9999';
+  modal.innerHTML = `
+    <div style="background:#fff;padding:32px 36px;border-radius:14px;box-shadow:0 4px 24px rgba(44,62,80,0.13);min-width:340px;max-width:95vw;text-align:left;">
+      <div style="font-size:1.15em;font-weight:600;margin-bottom:18px;text-align:center;">동아리 정보 수정</div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <label>동아리 이름<br><input id="editClubName" type="text" value="${post.club_name || ''}" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid #ccc;font-size:1em;"></label>
+        <label>카테고리<br>
+          <select id="editClubCategory" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid #ccc;font-size:1em;">
+            ${categories.map(cat => `<option value="${cat.value}"${post.club_category===cat.value?' selected':''}>${cat.label}</option>`).join('')}
+          </select>
+        </label>
+        <label>연락처<br><input id="editClubContact" type="text" value="${post.club_contact || ''}" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid #ccc;font-size:1em;"></label>
+        <label>소개글<br><textarea id="editClubDesc" rows="4" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid #ccc;font-size:1em;">${post.club_desc || ''}</textarea></label>
+      </div>
+      <div style="display:flex;gap:18px;justify-content:center;margin-top:24px;">
+        <button id="editClubSaveBtn" style="background:#23408e;color:#fff;padding:10px 28px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">수정</button>
+        <button id="editClubCancelBtn" style="background:#e3eafc;color:#23408e;padding:10px 28px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">취소</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.getElementById('editClubCancelBtn').onclick = () => { modal.remove(); };
+  document.getElementById('editClubSaveBtn').onclick = async () => {
+    const newName = document.getElementById('editClubName').value.trim();
+    const newCategory = document.getElementById('editClubCategory').value;
+    const newContact = document.getElementById('editClubContact').value.trim();
+    const newDesc = document.getElementById('editClubDesc').value.trim();
+    if (!newName || !newCategory || !newContact || !newDesc) {
+      showSuccessToast('모든 항목을 입력하세요.');
+      return;
+    }
+    const { error: updateError } = await supabase.from('clubs').update({
+      club_name: newName,
+      club_category: newCategory,
+      club_contact: newContact,
+      club_desc: newDesc
+    }).eq('id', postId);
+    if (updateError) {
+      showSuccessToast('수정 실패: ' + updateError.message);
+      return;
+    }
+    modal.remove();
+    showSuccessToast('수정이 완료되었습니다!');
+    setTimeout(() => location.reload(), 1200);
+  };
+}; 
