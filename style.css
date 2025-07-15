@@ -871,10 +871,7 @@ textarea {
     color: white;
 }
 
-.kakao-btn {
-    background: #fee500;
-    color: #000;
-} 
+ 
 
 .apple-btn {
     background: #000;
@@ -1585,4 +1582,54 @@ textarea {
         font-size: 0.9em;
         margin-left: 0;
     }
+}
+
+/* 홈페이지 전용 스타일 */
+#homeItemsGrid .item-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+}
+
+#homeItemsGrid .item-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-color: #2c3e50;
+}
+
+#homeItemsGrid .item-card:active {
+    transform: translateY(-2px);
+}
+
+/* 이메일 상태 표시 스타일 */
+.email-status {
+    font-size: 12px;
+    margin-top: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.email-status.email-checking {
+    color: #666;
+    background-color: #f0f0f0;
+}
+
+.email-status.email-available {
+    color: #28a745;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+.email-status.email-unavailable {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+.email-status.email-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
 } 

@@ -6,6 +6,7 @@
     <meta name="description" content="분실물 등록, 분실물 찾기, 등록된 분실물 정보를 제공하는 분실물 찾기 서비스입니다.">
     <title>분실물 찾기 서비스</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -35,46 +36,17 @@
                         <button class="search-button">검색</button>
                     </div>
                 </div>
-                <div class="items-grid">
-                    <div class="item-card" onclick="location.href='list.html'">
-                        <div class="item-image">휴대폰</div>
-                        <div class="item-content">
-                            <div class="post-type-badge lost">분실물</div>
-                            <div class="item-category">전자기기</div>
-                            <h3 class="item-title">아이폰 15 실버</h3>
-                            <p class="item-description">강남역 지하철에서 분실한 아이폰 15입니다. 투명한 실리콘 케이스가 씌워져 있고, 화면에 귀여운 고양이 배경화면이 있습니다.</p>
-                            <div class="item-meta">
-                                <span class="item-date">2024-01-15</span>
-                                <span class="item-location">강남역</span>
-                            </div>
-                        </div>
+                <div class="items-grid" id="homeItemsGrid">
+                    <!-- 최신 게시물 3개가 여기에 동적으로 로드됩니다 -->
+                    <div class="loading-indicator">
+                        <div class="loading-spinner"></div>
+                        <p>최신 게시물을 불러오는 중...</p>
                     </div>
-                    <div class="item-card" onclick="location.href='list.html'">
-                        <div class="item-image">지갑</div>
-                        <div class="item-content">
-                            <div class="post-type-badge found">습득물</div>
-                            <div class="item-category">지갑/카드</div>
-                            <h3 class="item-title">검은색 가죽 지갑</h3>
-                            <p class="item-description">서울역 1번 출구 근처에서 주운 검은색 가죽 지갑입니다. 안에 신분증과 여러 장의 카드가 들어있습니다.</p>
-                            <div class="item-meta">
-                                <span class="item-date">2024-01-14</span>
-                                <span class="item-location">서울역</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="item-card" onclick="location.href='list.html'">
-                        <div class="item-image">가방</div>
-                        <div class="item-content">
-                            <div class="post-type-badge found">습득물</div>
-                            <div class="item-category">가방/백팩</div>
-                            <h3 class="item-title">나이키 검은색 백팩</h3>
-                            <p class="item-description">홍대입구역에서 주운 나이키 검은색 백팩입니다. 노트북과 충전기가 들어있고, 앞쪽 주머니에 연필꽂이가 있습니다.</p>
-                            <div class="item-meta">
-                                <span class="item-date">2024-01-13</span>
-                                <span class="item-location">홍대입구역</span>
-                            </div>
-                        </div>
-                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 30px;">
+                    <button onclick="location.href='list.html'" class="submit-button" style="background: #6c757d; border: none; padding: 12px 30px;">
+                        <i class="fas fa-list"></i> 전체 게시물 보기
+                    </button>
                 </div>
             </section>
             <section id="register" class="section">
@@ -229,9 +201,6 @@
                     <p style="text-align: center; margin: 20px 0; color: #666;">또는</p>
                     <button onclick="signInWithGoogle()" class="social-btn google-btn">
                         Google로 로그인
-                    </button>
-                    <button onclick="signInWithKakao()" class="social-btn kakao-btn">
-                        카카오로 로그인
                     </button>
                 </div>
                 

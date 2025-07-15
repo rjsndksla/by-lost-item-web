@@ -58,17 +58,7 @@ async function signInWithGoogle() {
         alert('Google 로그인 오류: ' + error.message);
     }
 }
-async function signInWithKakao() {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'kakao',
-        options: { redirectTo: window.location.origin }
-    });
-    if (error) {
-        alert('Kakao 로그인 오류: ' + error.message);
-    }
-}
 window.signInWithGoogle = signInWithGoogle;
-window.signInWithKakao = signInWithKakao;
 
 // 분실물(Found/Lost) 등록 함수
 async function createPost(postData) {
@@ -126,34 +116,61 @@ window.createPost = createPost;
 // (이하 CRUD, 채팅 등 필요한 백엔드 함수만 남기고, UI/이벤트/모달 관련 함수는 모두 삭제)
 // ... 
 
-// 게시물 목록 조회 함수 (샘플 기본 구현)
+// 게시물 목록 조회 함수 (개선된 에러 처리)
 async function getPosts(type = null, limit = 50) {
-    let query = supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false });
-    if (type) query = query.eq('type', type);
-    if (limit) query = query.limit(limit);
-    const { data, error } = await query;
-    if (error) {
-        alert('게시물 조회 오류: ' + error.message);
-        return [];
+    try {
+        let query = supabase
+            .from('posts')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (type) query = query.eq('type', type);
+        if (limit) query = query.limit(limit);
+        
+        const { data, error } = await query;
+        
+        if (error) {
+            console.error('Supabase 오류:', error);
+            throw new Error('데이터베이스 조회 오류: ' + error.message);
+        }
+        
+        return data || [];
+    } catch (error) {
+        console.error('getPosts 오류:', error);
+        
+        // 네트워크 오류인지 확인
+        if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+            throw new Error('네트워크 연결 오류입니다. 인터넷 연결을 확인해주세요.');
+        }
+        
+        throw error;
     }
-    return data;
 }
 
-// 게시물 상세 조회 함수 (샘플 기본 구현)
+// 게시물 상세 조회 함수 (개선된 에러 처리)
 async function getPostById(postId) {
-    const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('id', postId)
-        .single();
-    if (error) {
-        alert('게시물 상세 조회 오류: ' + error.message);
-        return null;
+    try {
+        const { data, error } = await supabase
+            .from('posts')
+            .select('*')
+            .eq('id', postId)
+            .single();
+        
+        if (error) {
+            console.error('Supabase 상세 조회 오류:', error);
+            throw new Error('게시물 상세 조회 오류: ' + error.message);
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('getPostById 오류:', error);
+        
+        // 네트워크 오류인지 확인
+        if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+            throw new Error('네트워크 연결 오류입니다. 인터넷 연결을 확인해주세요.');
+        }
+        
+        throw error;
     }
-    return data;
 }
 
 // 게시물 삭제 함수 (샘플 기본 구현)
@@ -193,11 +210,55 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
+// 재시도 메커니즘을 포함한 함수들
+async function getPostsWithRetry(type = null, limit = 50, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await getPosts(type, limit);
+        } catch (error) {
+            console.log(`재시도 ${i + 1}/${retries} 실패:`, error.message);
+            
+            if (i === retries - 1) throw error;
+            
+            // 잠시 대기 후 재시도 (지수 백오프)
+            const delay = Math.min(1000 * Math.pow(2, i), 5000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+}
+
+async function getPostByIdWithRetry(postId, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await getPostById(postId);
+        } catch (error) {
+            console.log(`재시도 ${i + 1}/${retries} 실패:`, error.message);
+            
+            if (i === retries - 1) throw error;
+            
+            // 잠시 대기 후 재시도 (지수 백오프)
+            const delay = Math.min(1000 * Math.pow(2, i), 5000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+}
+
+// 네트워크 상태 확인 함수
+function checkNetworkStatus() {
+    if (!navigator.onLine) {
+        return '오프라인 상태입니다. 인터넷 연결을 확인해주세요.';
+    }
+    return null;
+}
+
 // 전역 등록 (파일 마지막에 위치)
 window.getPosts = getPosts;
+window.getPostsWithRetry = getPostsWithRetry;
 window.getPostById = getPostById;
+window.getPostByIdWithRetry = getPostByIdWithRetry;
 window.deletePost = deletePost;
 window.updatePost = updatePost;
 window.uploadImage = uploadImage;
-window.escapeHtml = escapeHtml; // escapeHtml 함수 전역 등록
+window.escapeHtml = escapeHtml;
+window.checkNetworkStatus = checkNetworkStatus;
 // window.createPost = createPost; // 이미 위에서 등록됨 

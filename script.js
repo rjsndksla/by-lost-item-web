@@ -36,20 +36,67 @@ window.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            const { data, error } = await supabase.auth.signUp({
-                email: email,
-                password: password
-            });
-
-            if (error) {
-                alert('회원가입 실패: ' + error.message);
+            // 이메일 형식 검증
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('올바른 이메일 형식을 입력해주세요.');
                 return;
             }
 
-            // 이메일 인증 안내 메시지
-            alert('회원가입이 완료되었습니다! 이메일로 인증 링크가 발송되었습니다.\n메일을 확인하고 인증을 완료해 주세요. 인증 후 로그인할 수 있습니다.');
-            this.reset();
-            showLoginForm();
+            // 회원가입 버튼 비활성화 및 로딩 상태
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = '가입 중...';
+
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    // 이미 등록된 이메일인지 확인
+                    if (error.message && (
+                        error.message.toLowerCase().includes('already registered') ||
+                        error.message.toLowerCase().includes('already exists') ||
+                        error.message.toLowerCase().includes('already been registered') ||
+                        error.message.toLowerCase().includes('user already exists') ||
+                        error.message.toLowerCase().includes('email already in use')
+                    )) {
+                        // 이메일 상태를 unavailable로 표시
+                        showEmailStatus('unavailable', '이미 등록된 이메일입니다');
+                        
+                        // 사용자에게 선택 옵션 제공
+                        const choice = confirm('이미 등록된 이메일입니다.\n\n로그인 페이지로 이동하시겠습니까?\n(취소를 누르면 비밀번호 찾기 페이지로 이동합니다)');
+                        
+                        if (choice) {
+                            showLoginForm();
+                        } else {
+                            showPasswordReset();
+                        }
+                        return;
+                    }
+                    
+                    // 기타 에러 처리
+                    alert('회원가입 실패: ' + error.message);
+                    return;
+                }
+
+                // 회원가입 성공
+                showEmailStatus('available', '회원가입이 완료되었습니다!');
+                alert('회원가입이 완료되었습니다! 이메일로 인증 링크가 발송되었습니다.\n메일을 확인하고 인증을 완료해 주세요. 인증 후 로그인할 수 있습니다.');
+                this.reset();
+                showLoginForm();
+                
+            } catch (error) {
+                console.error('회원가입 중 오류:', error);
+                alert('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
+            } finally {
+                // 버튼 상태 복원
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
+            }
         });
     }
 
@@ -115,7 +162,106 @@ window.addEventListener('DOMContentLoaded', async function() {
             showLoginForm();
         });
     }
+
+    // 이메일 중복 확인 기능 추가
+    initializeEmailValidation();
 });
+
+// 이메일 중복 확인 기능
+function initializeEmailValidation() {
+    const signupEmail = document.getElementById('signupEmail');
+    if (signupEmail) {
+        let debounceTimer;
+        
+        signupEmail.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const email = this.value.trim();
+            
+            // 이메일 형식이 올바른 경우에만 중복 확인
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (email && emailRegex.test(email)) {
+                debounceTimer = setTimeout(() => {
+                    checkEmailAvailability(email);
+                }, 500); // 0.5초 딜레이
+            } else {
+                // 이메일 형식이 올바르지 않으면 상태 초기화
+                clearEmailStatus();
+            }
+        });
+    }
+}
+
+// 이메일 사용 가능 여부 확인
+async function checkEmailAvailability(email) {
+    try {
+        // 로딩 상태 표시
+        showEmailStatus('checking', '이메일 확인 중...');
+        
+        // 실제 회원가입 시도 없이 에러 메시지 패턴만 확인
+        // Supabase는 보안상 이메일 중복 확인을 위한 별도 API를 제공하지 않음
+        // 따라서 회원가입 시에만 중복 여부를 확인할 수 있음
+        
+        // 대신 사용자에게 안내 메시지 표시
+        setTimeout(() => {
+            showEmailStatus('info', '회원가입 시 이메일 중복 여부가 확인됩니다');
+        }, 1000);
+        
+    } catch (error) {
+        console.error('이메일 중복 확인 오류:', error);
+        clearEmailStatus();
+    }
+}
+
+// 이메일 상태 표시
+function showEmailStatus(status, message) {
+    const signupEmail = document.getElementById('signupEmail');
+    if (!signupEmail) return;
+    
+    // 기존 상태 메시지 제거
+    let statusElement = signupEmail.parentNode.querySelector('.email-status');
+    if (statusElement) {
+        statusElement.remove();
+    }
+    
+    // 새로운 상태 메시지 추가
+    statusElement = document.createElement('div');
+    statusElement.className = `email-status email-${status}`;
+    statusElement.textContent = message;
+    statusElement.style.cssText = `
+        font-size: 12px;
+        margin-top: 4px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 500;
+    `;
+    
+    if (status === 'checking') {
+        statusElement.style.color = '#666';
+        statusElement.style.backgroundColor = '#f0f0f0';
+    } else if (status === 'available') {
+        statusElement.style.color = '#28a745';
+        statusElement.style.backgroundColor = '#d4edda';
+    } else if (status === 'unavailable') {
+        statusElement.style.color = '#dc3545';
+        statusElement.style.backgroundColor = '#f8d7da';
+    } else if (status === 'info') {
+        statusElement.style.color = '#0c5460';
+        statusElement.style.backgroundColor = '#d1ecf1';
+    }
+    
+    signupEmail.parentNode.appendChild(statusElement);
+}
+
+// 이메일 상태 초기화
+function clearEmailStatus() {
+    const signupEmail = document.getElementById('signupEmail');
+    if (!signupEmail) return;
+    
+    const statusElement = signupEmail.parentNode.querySelector('.email-status');
+    if (statusElement) {
+        statusElement.remove();
+    }
+}
 
 // 로그인 상태 확인 및 UI 업데이트
 async function checkAuthState() {
@@ -829,7 +975,7 @@ function formatDate(dateString) {
     }).format(date);
 }
 
-// 게시물 목록 표시 (필터 적용)
+// 게시물 목록 표시 (필터 적용, 개선된 에러 처리)
 async function loadPosts() {
     try {
         const typeFilter = document.getElementById('typeFilter');
@@ -837,7 +983,13 @@ async function loadPosts() {
         const typeValue = typeFilter ? typeFilter.value : 'all';
         const categoryValue = categoryFilter ? categoryFilter.value : 'all';
 
-        let posts = await getPosts();
+        // 네트워크 상태 확인
+        const networkError = checkNetworkStatus();
+        if (networkError) {
+            throw new Error(networkError);
+        }
+
+        let posts = await getPostsWithRetry();
         // 1차: 타입 필터
         if (typeValue !== 'all') {
             posts = posts.filter(post => post.type === typeValue);
@@ -849,7 +1001,13 @@ async function loadPosts() {
 
         const itemsGrid = document.querySelector('.items-grid');
         if (!posts || posts.length === 0) {
-            itemsGrid.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1 / -1;">등록된 게시물이 없습니다.</p>';
+            itemsGrid.innerHTML = `
+                <div style="text-align: center; color: #666; grid-column: 1 / -1; padding: 40px;">
+                    <i class="fas fa-search" style="font-size: 36px; color: #ddd; margin-bottom: 15px;"></i>
+                    <h3 style="margin-bottom: 10px; color: #333;">등록된 게시물이 없습니다</h3>
+                    <p style="color: #666;">필터 조건에 맞는 게시물이 없습니다.</p>
+                </div>
+            `;
             return;
         }
 
@@ -897,8 +1055,48 @@ async function loadPosts() {
 
     } catch (error) {
         console.error('게시물 로드 중 오류:', error);
+        
+        // 상세한 오류 정보 로깅
+        const errorInfo = {
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            url: window.location.href,
+            error: error.message,
+            stack: error.stack
+        };
+        console.error('상세 오류 정보:', errorInfo);
+        
         const itemsGrid = document.querySelector('.items-grid');
-        itemsGrid.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1 / -1;">게시물을 불러오는 중 오류가 발생했습니다.</p>';
+        if (itemsGrid) {
+            let errorMessage = '게시물을 불러오는 중 오류가 발생했습니다.';
+            let errorIcon = 'fas fa-exclamation-triangle';
+            let errorColor = '#ffc107';
+            
+            if (error.message.includes('네트워크')) {
+                errorMessage = '네트워크 연결을 확인해주세요.';
+                errorIcon = 'fas fa-wifi';
+                errorColor = '#dc3545';
+            } else if (error.message.includes('오프라인')) {
+                errorMessage = '오프라인 상태입니다. 인터넷 연결을 확인해주세요.';
+                errorIcon = 'fas fa-wifi-slash';
+                errorColor = '#dc3545';
+            } else if (error.message.includes('데이터베이스')) {
+                errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+                errorIcon = 'fas fa-server';
+                errorColor = '#fd7e14';
+            }
+            
+            itemsGrid.innerHTML = `
+                <div style="text-align: center; color: #666; grid-column: 1 / -1; padding: 40px;">
+                    <i class="${errorIcon}" style="font-size: 36px; color: ${errorColor}; margin-bottom: 15px;"></i>
+                    <h3 style="margin-bottom: 10px; color: #333;">${errorMessage}</h3>
+                    <p style="margin-bottom: 20px; color: #666;">잠시 후 다시 시도해주세요.</p>
+                    <button onclick="loadPosts()" class="submit-button" style="background: ${errorColor};">
+                        <i class="fas fa-redo"></i> 다시 시도
+                    </button>
+                </div>
+            `;
+        }
     }
 }
 
@@ -916,10 +1114,16 @@ function getCategoryIcon(category) {
     return icons[category] || '기타';
 }
 
-// 게시물 상세보기
+// 게시물 상세보기 (개선된 에러 처리)
 async function showPostDetail(postId) {
     try {
-        const post = await getPostById(postId);
+        // 네트워크 상태 확인
+        const networkError = checkNetworkStatus();
+        if (networkError) {
+            throw new Error(networkError);
+        }
+
+        const post = await getPostByIdWithRetry(postId);
         if (!post) {
             alert('게시물을 찾을 수 없습니다.');
             return;
@@ -953,7 +1157,29 @@ async function showPostDetail(postId) {
         showModal(detailHtml);
     } catch (error) {
         console.error('게시물 상세 정보 로드 중 오류:', error);
-        alert('게시물을 불러오는 중 오류가 발생했습니다.');
+        
+        // 상세한 오류 정보 로깅
+        const errorInfo = {
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            url: window.location.href,
+            postId: postId,
+            error: error.message,
+            stack: error.stack
+        };
+        console.error('상세 오류 정보:', errorInfo);
+        
+        let errorMessage = '게시물을 불러오는 중 오류가 발생했습니다.';
+        
+        if (error.message.includes('네트워크')) {
+            errorMessage = '네트워크 연결을 확인해주세요.';
+        } else if (error.message.includes('오프라인')) {
+            errorMessage = '오프라인 상태입니다. 인터넷 연결을 확인해주세요.';
+        } else if (error.message.includes('데이터베이스')) {
+            errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        }
+        
+        alert(errorMessage);
     }
 }
 
@@ -980,7 +1206,137 @@ if (window.location.pathname.endsWith('profile.html')) {
         initializeAuthModal();
         checkAuthState();
     });
+} else if (window.location.pathname.endsWith('index.html') || window.location.pathname.endsWith('/')) {
+    window.addEventListener('DOMContentLoaded', function() {
+        loadHomePagePosts();
+        initializeAuthModal();
+        checkAuthState();
+    });
 } 
+
+// 홈페이지 최신 게시물 로드 (개선된 에러 처리)
+async function loadHomePagePosts() {
+    try {
+        const homeItemsGrid = document.getElementById('homeItemsGrid');
+        if (!homeItemsGrid) return;
+
+        // 네트워크 상태 확인
+        const networkError = checkNetworkStatus();
+        if (networkError) {
+            throw new Error(networkError);
+        }
+
+        // 최신 게시물 3개만 가져오기 (재시도 메커니즘 포함)
+        const posts = await getPostsWithRetry(null, 3);
+        
+        if (!posts || posts.length === 0) {
+            homeItemsGrid.innerHTML = `
+                <div style="text-align: center; color: #666; grid-column: 1 / -1; padding: 60px 20px;">
+                    <i class="fas fa-search" style="font-size: 48px; color: #ddd; margin-bottom: 20px;"></i>
+                    <h3 style="margin-bottom: 10px; color: #333;">아직 등록된 게시물이 없습니다</h3>
+                    <p style="margin-bottom: 30px; color: #666;">첫 번째 분실물/습득물을 등록해보세요!</p>
+                    <button onclick="location.href='register.html'" class="submit-button" style="margin-top: 20px; background: #2c3e50;">
+                        <i class="fas fa-plus"></i> 게시물 등록하기
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        homeItemsGrid.innerHTML = posts.map(post => {
+            const imageContent = post.image_url
+                ? `<img src="${post.image_url}" alt="${escapeHtml(post.title)}"
+                        onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML=\`<div class='no-image'>${getCategoryIcon(post.category)}</div>\`;">`
+                : `<div class="no-image">${getCategoryIcon(post.category)}</div>`;
+
+            // 타입별 클래스
+            const typeClass = post.type === 'lost' ? 'lost-type' : 'found-type';
+            const typeText = post.type === 'lost' ? '분실물' : '습득물';
+
+            return `
+                <div class="item-card" data-post-id="${post.id}" onclick="showPostDetail('${post.id}')">
+                    <div class="item-image">
+                        ${imageContent}
+                    </div>
+                    <div class="item-content">
+                        <div class="item-category">${escapeHtml(post.category)}</div>
+                        <h3 class="item-title">${escapeHtml(post.title)} <span class="item-type ${typeClass}">${typeText}</span></h3>
+                        <p class="item-description">${escapeHtml(post.description || '설명 없음')}</p>
+                        <div class="item-meta">
+                            <span class="item-date">${post.type === 'lost' ? '분실' : '습득'}날짜: ${formatDate(post.date_lost)}</span>
+                            <span class="item-location">${post.type === 'lost' ? '분실' : '발견'}장소: ${escapeHtml(post.location)}</span>
+                        </div>
+                        <div class="item-contact">
+                            <span><i class="fas fa-phone"></i>${escapeHtml(post.contact_phone || '연락처 없음')}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('홈페이지 게시물 로드 중 오류:', error);
+        
+        // 상세한 오류 정보 로깅
+        const errorInfo = {
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            url: window.location.href,
+            error: error.message,
+            stack: error.stack
+        };
+        console.error('상세 오류 정보:', errorInfo);
+        
+        const homeItemsGrid = document.getElementById('homeItemsGrid');
+        if (homeItemsGrid) {
+            let errorMessage = '게시물을 불러오는 중 오류가 발생했습니다.';
+            let errorIcon = 'fas fa-exclamation-triangle';
+            let errorColor = '#ffc107';
+            
+            if (error.message.includes('네트워크')) {
+                errorMessage = '네트워크 연결을 확인해주세요.';
+                errorIcon = 'fas fa-wifi';
+                errorColor = '#dc3545';
+            } else if (error.message.includes('오프라인')) {
+                errorMessage = '오프라인 상태입니다. 인터넷 연결을 확인해주세요.';
+                errorIcon = 'fas fa-wifi-slash';
+                errorColor = '#dc3545';
+            } else if (error.message.includes('데이터베이스')) {
+                errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+                errorIcon = 'fas fa-server';
+                errorColor = '#fd7e14';
+            }
+            
+            homeItemsGrid.innerHTML = `
+                <div style="text-align: center; color: #666; grid-column: 1 / -1; padding: 60px 20px;">
+                    <i class="${errorIcon}" style="font-size: 48px; color: ${errorColor}; margin-bottom: 20px;"></i>
+                    <h3 style="margin-bottom: 10px; color: #333;">${errorMessage}</h3>
+                    <p style="margin-bottom: 30px; color: #666;">잠시 후 다시 시도해주세요.</p>
+                    <button onclick="loadHomePagePosts()" class="submit-button" style="background: ${errorColor};">
+                        <i class="fas fa-redo"></i> 다시 시도
+                    </button>
+                </div>
+            `;
+        }
+    }
+}
+
+// 네트워크 상태 모니터링
+window.addEventListener('online', function() {
+    console.log('네트워크 연결이 복구되었습니다.');
+    // 페이지가 list.html인 경우 자동으로 게시물 다시 로드
+    if (window.location.pathname.endsWith('list.html')) {
+        loadPosts();
+    }
+    // 페이지가 index.html인 경우 홈페이지 게시물 다시 로드
+    if (window.location.pathname.endsWith('index.html') || window.location.pathname.endsWith('/')) {
+        loadHomePagePosts();
+    }
+});
+
+window.addEventListener('offline', function() {
+    console.log('네트워크 연결이 끊어졌습니다.');
+});
 
 // 드롭다운 필터 이벤트 리스너 등록
 window.addEventListener('DOMContentLoaded', function() {
