@@ -57,17 +57,39 @@ async function signInWithGoogle() {
         // GitHub Pages 도메인 확인 및 리다이렉트 URL 설정
         let redirectUrl;
         if (window.location.hostname.includes('github.io')) {
-            // GitHub Pages 환경
-            redirectUrl = 'https://rjsndksla.github.io';
+            // GitHub Pages 환경 - 더 안정적인 경로 처리
+            const currentPath = window.location.pathname;
+            const repoName = 'by-lost-item-web-main';
+            
+            // 현재 경로에 따라 리다이렉트 URL 결정
+            if (currentPath === '/' || currentPath === `/${repoName}/` || currentPath === `/${repoName}`) {
+                redirectUrl = `https://rjsndksla.github.io/${repoName}/index.html`;
+            } else if (currentPath.startsWith(`/${repoName}/`)) {
+                // 이미 올바른 경로에 있는 경우
+                redirectUrl = `https://rjsndksla.github.io${currentPath}`;
+            } else {
+                // 잘못된 경로인 경우 기본 페이지로
+                redirectUrl = `https://rjsndksla.github.io/${repoName}/index.html`;
+            }
+            
+            console.log('GitHub Pages 환경 감지됨');
+            console.log('현재 경로:', currentPath);
+            console.log('설정된 리다이렉트 URL:', redirectUrl);
         } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             // 로컬 개발 환경
             redirectUrl = window.location.origin + window.location.pathname;
+            console.log('로컬 개발 환경 감지됨');
         } else {
             // 기타 도메인
             redirectUrl = window.location.origin + window.location.pathname;
+            console.log('기타 도메인 환경 감지됨');
         }
         
-        console.log('설정된 리다이렉트 URL:', redirectUrl);
+        console.log('최종 리다이렉트 URL:', redirectUrl);
+        
+        // 현재 URL에서 해시 파라미터 제거
+        const cleanUrl = window.location.href.split('#')[0];
+        console.log('정리된 URL:', cleanUrl);
         
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',

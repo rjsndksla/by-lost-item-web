@@ -105,15 +105,15 @@ http://localhost:3000/buyong.html
 #### **3-5. GitHub Pages 배포 환경**
 GitHub Pages에서 배포하는 경우:
 ```
-https://rjsndksla.github.io
-https://rjsndksla.github.io/index.html
-https://rjsndksla.github.io/club.html
-https://rjsndksla.github.io/club-list.html
-https://rjsndksla.github.io/club-register.html
-https://rjsndksla.github.io/list.html
-https://rjsndksla.github.io/register.html
-https://rjsndksla.github.io/profile.html
-https://rjsndksla.github.io/buyong.html
+https://rjsndksla.github.io/by-lost-item-web-main
+https://rjsndksla.github.io/by-lost-item-web-main/index.html
+https://rjsndksla.github.io/by-lost-item-web-main/club.html
+https://rjsndksla.github.io/by-lost-item-web-main/club-list.html
+https://rjsndksla.github.io/by-lost-item-web-main/club-register.html
+https://rjsndksla.github.io/by-lost-item-web-main/list.html
+https://rjsndksla.github.io/by-lost-item-web-main/register.html
+https://rjsndksla.github.io/by-lost-item-web-main/profile.html
+https://rjsndksla.github.io/by-lost-item-web-main/buyong.html
 ```
 
 ### 4. 디버깅 방법
@@ -134,6 +134,44 @@ debugRedirectUrls();
 - **리다이렉트 오류**: Supabase 콘솔의 Redirect URL 설정 오류
 - **토큰 만료**: 브라우저 캐시/쿠키 삭제 후 재시도
 - **redirect_uri_mismatch**: Google Cloud Console의 Authorized redirect URIs에 Supabase 콜백 URL 추가 필요
+
+## GitHub Pages 배포 문제 해결
+
+### 1. GitHub Pages 설정 확인
+1. **GitHub 저장소** → **Settings** → **Pages**
+2. **Source**가 **Deploy from a branch**로 설정되어 있는지 확인
+3. **Branch**가 **main** 또는 **master**로 설정되어 있는지 확인
+4. **Folder**가 **/(root)**로 설정되어 있는지 확인
+
+### 2. 파일 경로 문제 해결
+GitHub Pages에서 404 오류가 발생하는 경우:
+
+#### **2-1. 올바른 URL 사용**
+- ❌ 잘못된 URL: `https://rjsndksla.github.io/`
+- ✅ 올바른 URL: `https://rjsndksla.github.io/by-lost-item-web-main/`
+
+#### **2-2. 파일 확장자 확인**
+- ❌ 잘못된 경로: `https://rjsndksla.github.io/by-lost-item-web-main/club`
+- ✅ 올바른 경로: `https://rjsndksla.github.io/by-lost-item-web-main/club.html`
+
+### 3. 디버깅 방법
+브라우저 개발자 도구 콘솔에서 실행:
+```javascript
+// GitHub Pages 환경 진단
+debugGitHubPages();
+
+// 네트워크 문제 진단
+debugNetworkIssues();
+
+// 리다이렉트 URL 확인
+debugRedirectUrls();
+```
+
+### 4. 일반적인 GitHub Pages 문제들
+- **404 오류**: 파일 경로가 잘못됨 - 올바른 저장소 경로 사용
+- **빈 페이지**: JavaScript 오류 - 개발자 도구에서 콘솔 확인
+- **스타일 누락**: CSS 파일 경로 오류 - 상대 경로 확인
+- **인증 실패**: Supabase 설정 오류 - 리다이렉트 URL 확인
 
 ## 동아리 게시글 공개 문제 해결
 

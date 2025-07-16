@@ -8,6 +8,12 @@ const itemsPerPage = 6;
 
 // DOM이 로드된 후 실행
 window.addEventListener('DOMContentLoaded', async function() {
+    // GitHub Pages 경로 자동 수정
+    fixGitHubPagesPath();
+    
+    // URL에서 인증 토큰 파라미터 정리
+    cleanupAuthParams();
+    
     initializeDateFields();
     initializeFormListeners();
     initializeSearch();
@@ -21,6 +27,8 @@ window.addEventListener('DOMContentLoaded', async function() {
         if (event === 'SIGNED_IN') {
             console.log('로그인 성공:', session.user.email);
             await checkAuthState();
+            // 로그인 성공 후 URL 정리
+            cleanupAuthParams();
         } else if (event === 'SIGNED_OUT') {
             console.log('로그아웃 완료');
             await checkAuthState();
@@ -284,11 +292,34 @@ async function checkAuthState() {
     try {
         console.log('인증 상태 확인 중...');
         
-        const { data: { user }, error } = await supabase.auth.getUser();
+        // URL 파라미터 정리
+        cleanupAuthParams();
         
-        if (error) {
-            console.error('인증 상태 확인 오류:', error);
-            // 에러가 있어도 UI는 로그아웃 상태로 표시
+        // 세션 먼저 확인
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+            console.error('세션 조회 오류:', sessionError);
+        } else {
+            console.log('현재 세션:', sessionData.session ? '존재' : '없음');
+        }
+        
+        // 사용자 정보 조회
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+            console.error('사용자 정보 조회 오류:', userError);
+            
+            // AuthSessionMissingError인 경우 특별 처리
+            if (userError.message && userError.message.includes('Auth session missing')) {
+                console.log('세션이 누락됨 - 로그아웃 상태로 처리');
+                // 세션이 누락된 경우 로그아웃 상태로 처리
+                const authContainer = document.getElementById('auth-container');
+                const userInfo = document.getElementById('user-info');
+                if (authContainer) authContainer.style.display = 'block';
+                if (userInfo) userInfo.style.display = 'none';
+                return;
+            }
         }
         
         const authContainer = document.getElementById('auth-container');
@@ -1854,7 +1885,12 @@ function debugRedirectUrls() {
     // GitHub Pages 환경 감지
     if (window.location.hostname.includes('github.io')) {
         console.log('GitHub Pages 환경 감지됨');
-        console.log('설정된 리다이렉트 URL: https://rjsndksla.github.io');
+        const currentPath = window.location.pathname;
+        if (currentPath === '/' || currentPath === '/by-lost-item-web-main/') {
+            console.log('설정된 리다이렉트 URL: https://rjsndksla.github.io/by-lost-item-web-main/index.html');
+        } else {
+            console.log('설정된 리다이렉트 URL: https://rjsndksla.github.io/by-lost-item-web-main' + currentPath);
+        }
     }
     
     console.log('예상 리다이렉트 URL:', window.location.origin + window.location.pathname);
@@ -1874,7 +1910,7 @@ function debugRedirectUrls() {
     console.log('등록해야 할 리다이렉트 URL들:');
     if (window.location.hostname.includes('github.io')) {
         pages.forEach(page => {
-            console.log(`https://rjsndksla.github.io/${page}`);
+            console.log(`https://rjsndksla.github.io/by-lost-item-web-main/${page}`);
         });
     } else {
         pages.forEach(page => {
@@ -1934,8 +1970,253 @@ async function debugClubDatabase() {
     }
 }
 
+function debugUrlParams() {
+    console.log('=== URL 파라미터 디버깅 ===');
+    console.log('현재 URL:', window.location.href);
+    console.log('URL 해시:', window.location.hash);
+    console.log('URL 검색 파라미터:', window.location.search);
+    
+    // 해시 파라미터 파싱
+    if (window.location.hash) {
+        const params = new URLSearchParams(window.location.hash.substring(1));
+        console.log('해시 파라미터:');
+        for (const [key, value] of params.entries()) {
+            console.log(`  ${key}: ${key.includes('token') ? '[HIDDEN]' : value}`);
+        }
+    }
+    
+    // 검색 파라미터 파싱
+    if (window.location.search) {
+        const params = new URLSearchParams(window.location.search);
+        console.log('검색 파라미터:');
+        for (const [key, value] of params.entries()) {
+            console.log(`  ${key}: ${key.includes('token') ? '[HIDDEN]' : value}`);
+        }
+    }
+}
+
 // 전역 함수로 등록
 window.debugAuthState = debugAuthState;
 window.debugSupabaseConfig = debugSupabaseConfig;
 window.debugRedirectUrls = debugRedirectUrls;
 window.debugClubDatabase = debugClubDatabase;
+window.debugUrlParams = debugUrlParams;
+
+// URL에서 인증 토큰 파라미터 정리 함수
+function cleanupAuthParams() {
+    try {
+        const url = new URL(window.location.href);
+        const hash = url.hash;
+        
+        // URL 해시에서 인증 토큰 파라미터 확인
+        if (hash && (hash.includes('access_token') || hash.includes('error'))) {
+            console.log('인증 토큰 파라미터 발견, 정리 중...');
+            
+            // 해시 파라미터 파싱
+            const params = new URLSearchParams(hash.substring(1));
+            const accessToken = params.get('access_token');
+            const refreshToken = params.get('refresh_token');
+            const error = params.get('error');
+            
+            if (accessToken) {
+                console.log('액세스 토큰 발견');
+                
+                // 토큰을 Supabase에 전달 (더 안전한 방법)
+                supabase.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: refreshToken || ''
+                }).then(({ data, error }) => {
+                    if (error) {
+                        console.error('세션 설정 오류:', error);
+                        // 세션 설정 실패 시 로그아웃 상태로 처리
+                        const authContainer = document.getElementById('auth-container');
+                        const userInfo = document.getElementById('user-info');
+                        if (authContainer) authContainer.style.display = 'block';
+                        if (userInfo) userInfo.style.display = 'none';
+                    } else {
+                        console.log('세션 설정 성공');
+                        // URL에서 토큰 파라미터 제거
+                        window.history.replaceState({}, document.title, url.pathname);
+                        
+                        // 세션 설정 후 인증 상태 다시 확인
+                        setTimeout(() => {
+                            checkAuthState();
+                        }, 500);
+                    }
+                }).catch(error => {
+                    console.error('세션 설정 중 예외 발생:', error);
+                });
+            } else if (error) {
+                console.error('인증 오류:', error);
+                alert('로그인 중 오류가 발생했습니다: ' + error);
+                // URL에서 오류 파라미터 제거
+                window.history.replaceState({}, document.title, url.pathname);
+            }
+        }
+    } catch (error) {
+        console.error('URL 파라미터 정리 중 오류:', error);
+    }
+}
+
+function debugGitHubPages() {
+    console.log('=== GitHub Pages 환경 진단 ===');
+    console.log('현재 URL:', window.location.href);
+    console.log('Hostname:', window.location.hostname);
+    console.log('Pathname:', window.location.pathname);
+    console.log('Search:', window.location.search);
+    console.log('Hash:', window.location.hash);
+    
+    // GitHub Pages 환경 확인
+    const isGitHubPages = window.location.hostname.includes('github.io');
+    console.log('GitHub Pages 환경:', isGitHubPages);
+    
+    if (isGitHubPages) {
+        // 저장소 이름 추출
+        const pathParts = window.location.pathname.split('/').filter(part => part);
+        console.log('경로 구성요소:', pathParts);
+        
+        if (pathParts.length > 0) {
+            console.log('저장소 이름:', pathParts[0]);
+            console.log('현재 파일 경로:', pathParts.slice(1).join('/'));
+        }
+        
+        // 404 오류 가능성 체크
+        const currentPath = window.location.pathname;
+        if (currentPath === '/' || currentPath === '/by-lost-item-web-main/') {
+            console.log('⚠️ 루트 경로 감지 - 404 오류 가능성 높음');
+            console.log('권장: https://rjsndksla.github.io/by-lost-item-web-main/index.html로 이동');
+        }
+    }
+    
+    // 네트워크 연결 상태 확인
+    console.log('온라인 상태:', navigator.onLine);
+    console.log('User Agent:', navigator.userAgent);
+    
+    // Supabase 연결 상태 확인
+    console.log('Supabase URL:', supabase.supabaseUrl);
+    console.log('Supabase Key 존재:', !!supabase.supabaseKey);
+}
+
+function debugNetworkIssues() {
+    console.log('=== 네트워크 문제 진단 ===');
+    
+    // CORS 오류 체크
+    fetch('https://jyvgzfewhwwkygxlbvvt.supabase.co/auth/v1/user', {
+        method: 'GET',
+        headers: {
+            'apikey': supabase.supabaseKey,
+            'Authorization': `Bearer ${supabase.supabaseKey}`
+        }
+    }).then(response => {
+        console.log('Supabase 연결 상태:', response.status);
+        if (response.ok) {
+            console.log('✅ Supabase 연결 정상');
+        } else {
+            console.log('❌ Supabase 연결 실패:', response.status);
+        }
+    }).catch(error => {
+        console.log('❌ Supabase 연결 오류:', error.message);
+    });
+    
+    // GitHub Pages 파일 접근 체크
+    const testUrls = [
+        'https://rjsndksla.github.io/by-lost-item-web-main/index.html',
+        'https://rjsndksla.github.io/by-lost-item-web-main/club.html',
+        'https://rjsndksla.github.io/by-lost-item-web-main/script.js'
+    ];
+    
+    testUrls.forEach(url => {
+        fetch(url, { method: 'HEAD' })
+            .then(response => {
+                console.log(`${url}: ${response.status}`);
+            })
+            .catch(error => {
+                console.log(`${url}: 오류 - ${error.message}`);
+            });
+    });
+}
+
+async function debugSession() {
+    console.log('=== 세션 디버깅 ===');
+    
+    try {
+        // 세션 정보 확인
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        console.log('세션 데이터:', sessionData);
+        console.log('세션 오류:', sessionError);
+        
+        // 사용자 정보 확인
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        console.log('사용자 데이터:', userData);
+        console.log('사용자 오류:', userError);
+        
+        // 로컬 스토리지 확인
+        console.log('로컬 스토리지 키들:');
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.includes('supabase')) {
+                console.log(`  ${key}: ${localStorage.getItem(key).substring(0, 50)}...`);
+            }
+        }
+        
+        // 세션 쿠키 확인
+        console.log('세션 관련 쿠키:');
+        document.cookie.split(';').forEach(cookie => {
+            if (cookie.includes('supabase') || cookie.includes('auth')) {
+                console.log(`  ${cookie.trim()}`);
+            }
+        });
+        
+    } catch (error) {
+        console.error('세션 디버깅 중 오류:', error);
+    }
+}
+
+// 전역 함수로 등록
+window.debugAuthState = debugAuthState;
+window.debugSupabaseConfig = debugSupabaseConfig;
+window.debugRedirectUrls = debugRedirectUrls;
+window.debugClubDatabase = debugClubDatabase;
+window.debugUrlParams = debugUrlParams;
+window.debugGitHubPages = debugGitHubPages;
+window.debugNetworkIssues = debugNetworkIssues;
+window.debugSession = debugSession;
+
+// GitHub Pages 경로 자동 수정 함수
+function fixGitHubPagesPath() {
+    // GitHub Pages 환경에서만 실행
+    if (!window.location.hostname.includes('github.io')) {
+        return;
+    }
+    
+    const currentPath = window.location.pathname;
+    const repoName = 'by-lost-item-web-main';
+    
+    // 잘못된 경로인 경우 수정
+    if (currentPath === '/' || currentPath === `/${repoName}/` || currentPath === `/${repoName}`) {
+        console.log('⚠️ 잘못된 GitHub Pages 경로 감지, 수정 중...');
+        console.log('현재 경로:', currentPath);
+        console.log('올바른 경로로 리다이렉트:', `/${repoName}/index.html`);
+        
+        // 404 오류 방지를 위해 올바른 경로로 리다이렉트
+        const correctUrl = `https://rjsndksla.github.io/${repoName}/index.html`;
+        
+        // 현재 페이지가 이미 올바른 경로가 아닌 경우에만 리다이렉트
+        if (currentPath !== `/${repoName}/index.html`) {
+            window.location.href = correctUrl;
+            return;
+        }
+    }
+    
+    // 파일이 존재하지 않는 경우 체크
+    const currentFile = currentPath.split('/').pop();
+    if (currentFile && !currentFile.includes('.')) {
+        // 파일 확장자가 없는 경우 index.html 추가
+        const correctedPath = currentPath.endsWith('/') ? 
+            currentPath + 'index.html' : 
+            currentPath + '/index.html';
+        
+        console.log('파일 경로 수정:', currentPath, '→', correctedPath);
+        window.location.href = `https://rjsndksla.github.io${correctedPath}`;
+    }
+}
