@@ -50,12 +50,58 @@ async function uploadImage(file, type) {
 
 // 소셜 로그인 (window에 등록)
 async function signInWithGoogle() {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: window.location.origin }
-    });
-    if (error) {
-        alert('Google 로그인 오류: ' + error.message);
+    try {
+        console.log('Google 로그인 시도 중...');
+        console.log('현재 URL:', window.location.origin);
+        
+        // GitHub Pages 도메인 확인 및 리다이렉트 URL 설정
+        let redirectUrl;
+        if (window.location.hostname.includes('github.io')) {
+            // GitHub Pages 환경
+            redirectUrl = 'https://rjsndksla.github.io';
+        } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            // 로컬 개발 환경
+            redirectUrl = window.location.origin + window.location.pathname;
+        } else {
+            // 기타 도메인
+            redirectUrl = window.location.origin + window.location.pathname;
+        }
+        
+        console.log('설정된 리다이렉트 URL:', redirectUrl);
+        
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { 
+                redirectTo: redirectUrl,
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent'
+                }
+            }
+        });
+        
+        if (error) {
+            console.error('Google 로그인 오류:', error);
+            
+            // 리다이렉트 오류인 경우 특별 처리
+            if (error.message && error.message.includes('redirect_uri_mismatch')) {
+                alert('리다이렉트 URL 설정 오류입니다.\n\n해결 방법:\n1. Supabase 콘솔에서 Google Provider 설정 확인\n2. Google Cloud Console에서 Authorized redirect URIs 확인\n3. 현재 URL이 등록되어 있는지 확인');
+            } else {
+                alert('Google 로그인 오류: ' + error.message);
+            }
+            return;
+        }
+        
+        console.log('Google 로그인 성공:', data);
+        
+        // 로그인 성공 후 상태 업데이트
+        setTimeout(async () => {
+            await checkAuthState();
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Google 로그인 예외:', error);
+        alert('Google 로그인 중 오류가 발생했습니다: ' + error.message);
     }
 }
 window.signInWithGoogle = signInWithGoogle;
