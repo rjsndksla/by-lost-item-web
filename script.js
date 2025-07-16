@@ -14,6 +14,22 @@ window.addEventListener('DOMContentLoaded', async function() {
     initializeAuthModal();
     await checkAuthState(); // 로그인 상태 확인
 
+    // Supabase 인증 상태 변경 리스너 추가
+    supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('인증 상태 변경:', event, session?.user?.email);
+        
+        if (event === 'SIGNED_IN') {
+            console.log('로그인 성공:', session.user.email);
+            await checkAuthState();
+        } else if (event === 'SIGNED_OUT') {
+            console.log('로그아웃 완료');
+            await checkAuthState();
+        } else if (event === 'TOKEN_REFRESHED') {
+            console.log('토큰 갱신됨');
+            await checkAuthState();
+        }
+    });
+
     // 회원가입 폼 이벤트 리스너
     const signupForm = document.getElementById('emailSignupForm');
     if (signupForm) {
@@ -265,30 +281,49 @@ function clearEmailStatus() {
 
 // 로그인 상태 확인 및 UI 업데이트
 async function checkAuthState() {
-    const { data: { user } } = await supabase.auth.getUser();
-    const authContainer = document.getElementById('auth-container');
-    const userInfo = document.getElementById('user-info');
-    
-    if (user) {
-        // 로그인 상태
-        if (authContainer) authContainer.style.display = 'none';
-        if (userInfo) {
-            userInfo.style.display = 'flex';
-            userInfo.innerHTML = `
-                <div class="user-menu">
-                    <button class="user-menu-button" onclick="toggleUserMenu(this)">
-                        ${user.email}
-                        <span class="menu-arrow">▼</span>
-                    </button>
-                    <div class="user-menu-content">
-                        <a href="${window.location.pathname.includes('club') ? 'club_profile.html' : 'profile.html'}">내 프로필</a>
-                        <a href="#" onclick="handleLogout()">로그아웃</a>
-                    </div>
-                </div>
-            `;
+    try {
+        console.log('인증 상태 확인 중...');
+        
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) {
+            console.error('인증 상태 확인 오류:', error);
+            // 에러가 있어도 UI는 로그아웃 상태로 표시
         }
-    } else {
-        // 로그아웃 상태
+        
+        const authContainer = document.getElementById('auth-container');
+        const userInfo = document.getElementById('user-info');
+        
+        if (user) {
+            console.log('로그인된 사용자:', user.email);
+            // 로그인 상태
+            if (authContainer) authContainer.style.display = 'none';
+            if (userInfo) {
+                userInfo.style.display = 'flex';
+                userInfo.innerHTML = `
+                    <div class="user-menu">
+                        <button class="user-menu-button" onclick="toggleUserMenu(this)">
+                            ${user.email}
+                            <span class="menu-arrow">▼</span>
+                        </button>
+                        <div class="user-menu-content">
+                            <a href="${window.location.pathname.includes('club') ? 'club_profile.html' : 'profile.html'}">내 프로필</a>
+                            <a href="#" onclick="handleLogout()">로그아웃</a>
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
+            console.log('로그아웃 상태');
+            // 로그아웃 상태
+            if (authContainer) authContainer.style.display = 'block';
+            if (userInfo) userInfo.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('인증 상태 확인 중 예외 발생:', error);
+        // 예외가 발생해도 UI는 로그아웃 상태로 표시
+        const authContainer = document.getElementById('auth-container');
+        const userInfo = document.getElementById('user-info');
         if (authContainer) authContainer.style.display = 'block';
         if (userInfo) userInfo.style.display = 'none';
     }
@@ -1418,59 +1453,110 @@ document.addEventListener('DOMContentLoaded', () => {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     messageDiv.textContent = '등록 중...';
+    messageDiv.style.color = '#666';
 
-    // 입력값 가져오기 (name 속성 기준)
-    const club_name = form.elements['club-name'].value.trim();
-    const club_category = form.elements['club-category'].value.trim();
-    const club_desc = form.elements['club-desc'].value.trim();
-    const club_contact = form.elements['club-contact'].value.trim();
-    const posterFile = document.getElementById('clubPosterInput').files[0];
+    try {
+      // 입력값 가져오기 (name 속성 기준)
+      const club_name = form.elements['club-name'].value.trim();
+      const club_category = form.elements['club-category'].value.trim();
+      const club_desc = form.elements['club-desc'].value.trim();
+      const club_contact = form.elements['club-contact'].value.trim();
+      const posterFile = document.getElementById('clubPosterInput').files[0];
 
-    // 로그인된 유저 정보
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      messageDiv.textContent = '로그인 후 이용해주세요.';
-      return;
-    }
-
-    // 포스터 업로드
-    let poster_url = null;
-    if (posterFile) {
-      const fileExt = posterFile.name.split('.').pop();
-      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
-      const { error } = await supabase.storage
-        .from('club-posters')
-        .upload(filePath, posterFile, { cacheControl: '3600', upsert: false });
-      if (error) {
-        messageDiv.textContent = '포스터 업로드 실패: ' + error.message;
+      // 입력값 검증
+      if (!club_name || !club_category || !club_desc || !club_contact) {
+        messageDiv.textContent = '모든 필수 항목을 입력해주세요.';
+        messageDiv.style.color = '#e74c3c';
         return;
       }
-      const { data: publicUrlData } = supabase
-        .storage
-        .from('club-posters')
-        .getPublicUrl(filePath);
-      poster_url = publicUrlData.publicUrl;
-    }
 
-    // clubs 테이블에 데이터 삽입
-    const { error: insertError } = await supabase
-      .from('clubs')
-      .insert([{
+      // 로그인된 유저 정보
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('사용자 정보 조회 오류:', userError);
+        messageDiv.textContent = '사용자 정보를 가져오지 못했습니다.';
+        messageDiv.style.color = '#e74c3c';
+        return;
+      }
+      
+      if (!user) {
+        messageDiv.textContent = '로그인 후 이용해주세요.';
+        messageDiv.style.color = '#e74c3c';
+        return;
+      }
+
+      console.log('동아리 등록 시작:', { club_name, club_category, user_id: user.id });
+
+      // 포스터 업로드
+      let poster_url = null;
+      if (posterFile) {
+        console.log('포스터 업로드 시작');
+        const fileExt = posterFile.name.split('.').pop();
+        const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('club-posters')
+          .upload(filePath, posterFile, { cacheControl: '3600', upsert: false });
+        
+        if (uploadError) {
+          console.error('포스터 업로드 오류:', uploadError);
+          messageDiv.textContent = '포스터 업로드 실패: ' + uploadError.message;
+          messageDiv.style.color = '#e74c3c';
+          return;
+        }
+        
+        const { data: publicUrlData } = supabase
+          .storage
+          .from('club-posters')
+          .getPublicUrl(filePath);
+        poster_url = publicUrlData.publicUrl;
+        console.log('포스터 업로드 완료:', poster_url);
+      }
+
+      // clubs 테이블에 데이터 삽입
+      const clubData = {
         user_id: user.id,
         club_name,
         club_category,
         club_desc,
         club_contact,
-        poster_url
-      }]);
+        poster_url,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
 
-    if (insertError) {
-      messageDiv.textContent = '등록 실패: ' + insertError.message;
-    } else {
+      console.log('동아리 데이터 삽입:', clubData);
+
+      const { data: insertData, error: insertError } = await supabase
+        .from('clubs')
+        .insert([clubData])
+        .select();
+
+      if (insertError) {
+        console.error('동아리 등록 오류:', insertError);
+        messageDiv.textContent = '등록 실패: ' + insertError.message;
+        messageDiv.style.color = '#e74c3c';
+        return;
+      }
+
+      console.log('동아리 등록 성공:', insertData);
       messageDiv.textContent = '동아리 등록 완료!';
+      messageDiv.style.color = '#27ae60';
       form.reset();
       document.getElementById('posterPreview').innerHTML = '';
+
+      // 등록 완료 후 목록 새로고침 (club-list.html 페이지인 경우)
+      if (document.getElementById('club-list')) {
+        setTimeout(() => {
+          loadClubList();
+        }, 1000);
+      }
+
+    } catch (error) {
+      console.error('동아리 등록 중 예외 발생:', error);
+      messageDiv.textContent = '등록 중 오류가 발생했습니다: ' + error.message;
+      messageDiv.style.color = '#e74c3c';
     }
   });
 }); 
@@ -1493,36 +1579,90 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadClubList(category = 'all') {
   const listDiv = document.getElementById('club-list');
   if (!listDiv) return;
+  
   listDiv.innerHTML = '<div style="text-align:center; padding:40px; color:#888;">불러오는 중...</div>';
-  let query = supabase.from('clubs').select('*').order('created_at', { ascending: false });
-  if (category && category !== 'all') {
-    query = query.eq('club_category', category);
-  }
-  const { data, error } = await query;
-  if (error) {
-    listDiv.innerHTML = '<div style="color:red; text-align:center;">동아리 목록을 불러오지 못했습니다.<br>' + error.message + '</div>';
-    return;
-  }
-  if (!data || data.length === 0) {
-    listDiv.innerHTML = '<div style="text-align:center; color:#888; padding:40px;">등록된 동아리가 없습니다.</div>';
-    return;
-  }
-  listDiv.innerHTML = data.map(club => `
-    <div class="item-card item-card-flex">
-      <div class="item-image item-image-left">
-        ${club.poster_url ? `<img src="${club.poster_url}" alt="포스터" style="width:160px;height:200px;object-fit:contain;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(44,62,80,0.08);">` : '<div class="no-image">No Image</div>'}
-      </div>
-      <div class="item-content item-content-right">
-        <div class="item-title">${club.club_name || ''}</div>
-        <div class="item-description">${club.club_desc || ''}</div>
-        <div class="item-meta" style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
-          <span class="item-location" style="color:#23408e;font-weight:500;">${club.club_contact || ''}</span>
-          <span class="item-category" style="background:#e3eafc;color:#23408e;padding:4px 10px;border-radius:6px;font-size:0.95em;">${club.club_category || ''}</span>
+  
+  try {
+    console.log('동아리 목록 조회 시작, 카테고리:', category);
+    
+    let query = supabase
+      .from('clubs')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (category && category !== 'all') {
+      query = query.eq('club_category', category);
+    }
+    
+    console.log('쿼리 실행 중...');
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('동아리 목록 조회 오류:', error);
+      listDiv.innerHTML = `
+        <div style="color:red; text-align:center; padding:20px;">
+          동아리 목록을 불러오지 못했습니다.<br>
+          오류: ${error.message}<br>
+          <button onclick="loadClubList('${category}')" style="margin-top:10px; padding:8px 16px; background:#23408e; color:white; border:none; border-radius:4px; cursor:pointer;">
+            다시 시도
+          </button>
+        </div>
+      `;
+      return;
+    }
+    
+    console.log('조회된 동아리 수:', data?.length || 0);
+    
+    if (!data || data.length === 0) {
+      listDiv.innerHTML = `
+        <div style="text-align:center; color:#888; padding:40px;">
+          등록된 동아리가 없습니다.<br>
+          <a href="club-register.html" style="color:#23408e; text-decoration:none; font-weight:500;">
+            첫 번째 동아리를 등록해보세요!
+          </a>
+        </div>
+      `;
+      return;
+    }
+    
+    // 데이터 렌더링
+    listDiv.innerHTML = data.map(club => `
+      <div class="item-card item-card-flex" data-club-id="${club.id}">
+        <div class="item-image item-image-left">
+          ${club.poster_url ? 
+            `<img src="${club.poster_url}" alt="포스터" style="width:160px;height:200px;object-fit:contain;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(44,62,80,0.08);">` : 
+            '<div class="no-image" style="width:160px;height:200px;background:#f8f9fa;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.9em;">No Image</div>'
+          }
+        </div>
+        <div class="item-content item-content-right">
+          <div class="item-title">${escapeHtml(club.club_name || '')}</div>
+          <div class="item-description">${escapeHtml(club.club_desc || '')}</div>
+          <div class="item-meta" style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+            <span class="item-location" style="color:#23408e;font-weight:500;">${escapeHtml(club.club_contact || '')}</span>
+            <span class="item-category" style="background:#e3eafc;color:#23408e;padding:4px 10px;border-radius:6px;font-size:0.95em;">${escapeHtml(club.club_category || '')}</span>
+          </div>
+          <div style="font-size:0.8em; color:#888; margin-top:8px;">
+            등록일: ${formatDate(club.created_at)}
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
-} 
+    `).join('');
+    
+    console.log('동아리 목록 렌더링 완료');
+    
+  } catch (error) {
+    console.error('동아리 목록 조회 중 예외 발생:', error);
+    listDiv.innerHTML = `
+      <div style="color:red; text-align:center; padding:20px;">
+        동아리 목록을 불러오는 중 오류가 발생했습니다.<br>
+        오류: ${error.message}<br>
+        <button onclick="loadClubList('${category}')" style="margin-top:10px; padding:8px 16px; background:#23408e; color:white; border:none; border-radius:4px; cursor:pointer;">
+          다시 시도
+        </button>
+      </div>
+    `;
+  }
+}
 
 // 커스텀 삭제 확인 모달 생성 함수
 function showDeleteConfirmModal(onConfirm) {
@@ -1679,3 +1819,108 @@ window.editClubPost = async function(postId) {
     setTimeout(() => location.reload(), 1200);
   };
 }; 
+
+// 디버깅을 위한 유틸리티 함수들
+function debugAuthState() {
+    console.log('=== 인증 상태 디버깅 ===');
+    supabase.auth.getUser().then(({ data, error }) => {
+        console.log('현재 사용자:', data.user);
+        console.log('에러:', error);
+    });
+    
+    supabase.auth.getSession().then(({ data, error }) => {
+        console.log('현재 세션:', data.session);
+        console.log('세션 에러:', error);
+    });
+}
+
+function debugSupabaseConfig() {
+    console.log('=== Supabase 설정 디버깅 ===');
+    console.log('Supabase URL:', supabase.supabaseUrl);
+    console.log('Supabase Key 존재:', !!supabase.supabaseKey);
+    console.log('현재 URL:', window.location.origin);
+    console.log('현재 경로:', window.location.pathname);
+    console.log('전체 URL:', window.location.href);
+}
+
+function debugRedirectUrls() {
+    console.log('=== 리다이렉트 URL 디버깅 ===');
+    console.log('현재 origin:', window.location.origin);
+    console.log('현재 pathname:', window.location.pathname);
+    console.log('현재 href:', window.location.href);
+    console.log('예상 리다이렉트 URL:', window.location.origin + window.location.pathname);
+    
+    // 모든 페이지 URL들 출력
+    const pages = [
+        'index.html',
+        'club.html', 
+        'club-list.html',
+        'club-register.html',
+        'list.html',
+        'register.html',
+        'profile.html',
+        'buyong.html'
+    ];
+    
+    console.log('등록해야 할 리다이렉트 URL들:');
+    pages.forEach(page => {
+        console.log(`${window.location.origin}/${page}`);
+    });
+}
+
+async function debugClubDatabase() {
+    console.log('=== 동아리 데이터베이스 디버깅 ===');
+    
+    try {
+        // 모든 동아리 조회
+        const { data: allClubs, error: allError } = await supabase
+            .from('clubs')
+            .select('*');
+        
+        console.log('전체 동아리 수:', allClubs?.length || 0);
+        console.log('전체 동아리 데이터:', allClubs);
+        
+        if (allError) {
+            console.error('동아리 조회 오류:', allError);
+        }
+        
+        // 현재 사용자의 동아리만 조회
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { data: userClubs, error: userError } = await supabase
+                .from('clubs')
+                .select('*')
+                .eq('user_id', user.id);
+            
+            console.log('현재 사용자 동아리 수:', userClubs?.length || 0);
+            console.log('현재 사용자 동아리:', userClubs);
+            
+            if (userError) {
+                console.error('사용자 동아리 조회 오류:', userError);
+            }
+        }
+        
+        // 테이블 구조 확인
+        const { data: tableInfo, error: tableError } = await supabase
+            .from('clubs')
+            .select('*')
+            .limit(1);
+        
+        if (tableInfo && tableInfo.length > 0) {
+            console.log('테이블 컬럼 구조:', Object.keys(tableInfo[0]));
+        }
+        
+        if (tableError) {
+            console.error('테이블 구조 확인 오류:', tableError);
+        }
+        
+    } catch (error) {
+        console.error('동아리 데이터베이스 디버깅 중 오류:', error);
+    }
+}
+
+// 전역 함수로 등록
+window.debugAuthState = debugAuthState;
+window.debugSupabaseConfig = debugSupabaseConfig;
+window.debugRedirectUrls = debugRedirectUrls;
+window.debugClubDatabase = debugClubDatabase;
