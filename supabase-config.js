@@ -57,12 +57,14 @@ async function signInWithGoogle() {
         // GitHub Pages 도메인 확인 및 리다이렉트 URL 설정
         let redirectUrl;
         if (window.location.hostname.includes('github.io')) {
-            // GitHub Pages 환경 - 더 안정적인 경로 처리
-            const currentPath = window.location.pathname;
-            const repoName = 'by-lost-item-web-main';
+            // GitHub Pages 환경 - 항상 올바른 경로 사용
+            const repoName = 'by-lost-item-web';
             
             // 현재 경로에 따라 리다이렉트 URL 결정
+            const currentPath = window.location.pathname;
+            
             if (currentPath === '/' || currentPath === `/${repoName}/` || currentPath === `/${repoName}`) {
+                // 루트 경로인 경우 기본 페이지로
                 redirectUrl = `https://rjsndksla.github.io/${repoName}/index.html`;
             } else if (currentPath.startsWith(`/${repoName}/`)) {
                 // 이미 올바른 경로에 있는 경우

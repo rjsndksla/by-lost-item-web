@@ -1886,10 +1886,10 @@ function debugRedirectUrls() {
     if (window.location.hostname.includes('github.io')) {
         console.log('GitHub Pages 환경 감지됨');
         const currentPath = window.location.pathname;
-        if (currentPath === '/' || currentPath === '/by-lost-item-web-main/') {
-            console.log('설정된 리다이렉트 URL: https://rjsndksla.github.io/by-lost-item-web-main/index.html');
+        if (currentPath === '/' || currentPath === '/by-lost-item-web/') {
+            console.log('설정된 리다이렉트 URL: https://rjsndksla.github.io/by-lost-item-web/index.html');
         } else {
-            console.log('설정된 리다이렉트 URL: https://rjsndksla.github.io/by-lost-item-web-main' + currentPath);
+            console.log('설정된 리다이렉트 URL: https://rjsndksla.github.io/by-lost-item-web' + currentPath);
         }
     }
     
@@ -1910,7 +1910,7 @@ function debugRedirectUrls() {
     console.log('등록해야 할 리다이렉트 URL들:');
     if (window.location.hostname.includes('github.io')) {
         pages.forEach(page => {
-            console.log(`https://rjsndksla.github.io/by-lost-item-web-main/${page}`);
+            console.log(`https://rjsndksla.github.io/by-lost-item-web/${page}`);
         });
     } else {
         pages.forEach(page => {
@@ -2082,9 +2082,9 @@ function debugGitHubPages() {
         
         // 404 오류 가능성 체크
         const currentPath = window.location.pathname;
-        if (currentPath === '/' || currentPath === '/by-lost-item-web-main/') {
+        if (currentPath === '/' || currentPath === '/by-lost-item-web/') {
             console.log('⚠️ 루트 경로 감지 - 404 오류 가능성 높음');
-            console.log('권장: https://rjsndksla.github.io/by-lost-item-web-main/index.html로 이동');
+            console.log('권장: https://rjsndksla.github.io/by-lost-item-web/index.html로 이동');
         }
     }
     
@@ -2120,9 +2120,9 @@ function debugNetworkIssues() {
     
     // GitHub Pages 파일 접근 체크
     const testUrls = [
-        'https://rjsndksla.github.io/by-lost-item-web-main/index.html',
-        'https://rjsndksla.github.io/by-lost-item-web-main/club.html',
-        'https://rjsndksla.github.io/by-lost-item-web-main/script.js'
+        'https://rjsndksla.github.io/by-lost-item-web/index.html',
+        'https://rjsndksla.github.io/by-lost-item-web/club.html',
+        'https://rjsndksla.github.io/by-lost-item-web/script.js'
     ];
     
     testUrls.forEach(url => {
@@ -2190,20 +2190,23 @@ function fixGitHubPagesPath() {
     }
     
     const currentPath = window.location.pathname;
-    const repoName = 'by-lost-item-web-main';
+    const repoName = 'by-lost-item-web';
     
-    // 잘못된 경로인 경우 수정
+    console.log('GitHub Pages 경로 수정 체크:', currentPath);
+    
+    // 루트 경로나 잘못된 경로인 경우 즉시 수정
     if (currentPath === '/' || currentPath === `/${repoName}/` || currentPath === `/${repoName}`) {
-        console.log('⚠️ 잘못된 GitHub Pages 경로 감지, 수정 중...');
+        console.log('⚠️ 잘못된 GitHub Pages 경로 감지, 즉시 수정 중...');
         console.log('현재 경로:', currentPath);
         console.log('올바른 경로로 리다이렉트:', `/${repoName}/index.html`);
         
-        // 404 오류 방지를 위해 올바른 경로로 리다이렉트
+        // 404 오류 방지를 위해 즉시 올바른 경로로 리다이렉트
         const correctUrl = `https://rjsndksla.github.io/${repoName}/index.html`;
         
         // 현재 페이지가 이미 올바른 경로가 아닌 경우에만 리다이렉트
         if (currentPath !== `/${repoName}/index.html`) {
-            window.location.href = correctUrl;
+            console.log('리다이렉트 실행:', correctUrl);
+            window.location.replace(correctUrl);
             return;
         }
     }
@@ -2217,6 +2220,26 @@ function fixGitHubPagesPath() {
             currentPath + '/index.html';
         
         console.log('파일 경로 수정:', currentPath, '→', correctedPath);
-        window.location.href = `https://rjsndksla.github.io${correctedPath}`;
+        window.location.replace(`https://rjsndksla.github.io${correctedPath}`);
     }
 }
+
+// 즉시 실행되는 GitHub Pages 경로 수정
+(function() {
+    // GitHub Pages 환경에서 루트 경로로 접근한 경우 즉시 수정
+    if (window.location.hostname.includes('github.io')) {
+        const currentPath = window.location.pathname;
+        const repoName = 'by-lost-item-web';
+        
+        // 루트 경로나 잘못된 경로인 경우 즉시 수정
+        if (currentPath === '/' || currentPath === `/${repoName}/` || currentPath === `/${repoName}`) {
+            console.log('🚨 GitHub Pages 루트 경로 감지 - 즉시 수정');
+            const correctUrl = `https://rjsndksla.github.io/${repoName}/index.html`;
+            console.log('올바른 URL로 리다이렉트:', correctUrl);
+            window.location.replace(correctUrl);
+            return;
+        }
+    }
+})();
+
+// DOM이 로드된 후 실행
