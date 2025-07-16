@@ -8,6 +8,9 @@ const itemsPerPage = 6;
 
 // DOM이 로드된 후 실행
 window.addEventListener('DOMContentLoaded', async function() {
+    // URL에서 인증 토큰 파라미터 정리
+    cleanupAuthParams();
+    
     initializeDateFields();
     initializeFormListeners();
     initializeSearch();
@@ -21,6 +24,8 @@ window.addEventListener('DOMContentLoaded', async function() {
         if (event === 'SIGNED_IN') {
             console.log('로그인 성공:', session.user.email);
             await checkAuthState();
+            // 로그인 성공 후 URL 정리
+            cleanupAuthParams();
         } else if (event === 'SIGNED_OUT') {
             console.log('로그아웃 완료');
             await checkAuthState();
@@ -283,6 +288,9 @@ function clearEmailStatus() {
 async function checkAuthState() {
     try {
         console.log('인증 상태 확인 중...');
+        
+        // URL 파라미터 정리
+        cleanupAuthParams();
         
         const { data: { user }, error } = await supabase.auth.getUser();
         
@@ -1934,8 +1942,76 @@ async function debugClubDatabase() {
     }
 }
 
+function debugUrlParams() {
+    console.log('=== URL 파라미터 디버깅 ===');
+    console.log('현재 URL:', window.location.href);
+    console.log('URL 해시:', window.location.hash);
+    console.log('URL 검색 파라미터:', window.location.search);
+    
+    // 해시 파라미터 파싱
+    if (window.location.hash) {
+        const params = new URLSearchParams(window.location.hash.substring(1));
+        console.log('해시 파라미터:');
+        for (const [key, value] of params.entries()) {
+            console.log(`  ${key}: ${key.includes('token') ? '[HIDDEN]' : value}`);
+        }
+    }
+    
+    // 검색 파라미터 파싱
+    if (window.location.search) {
+        const params = new URLSearchParams(window.location.search);
+        console.log('검색 파라미터:');
+        for (const [key, value] of params.entries()) {
+            console.log(`  ${key}: ${key.includes('token') ? '[HIDDEN]' : value}`);
+        }
+    }
+}
+
 // 전역 함수로 등록
 window.debugAuthState = debugAuthState;
 window.debugSupabaseConfig = debugSupabaseConfig;
 window.debugRedirectUrls = debugRedirectUrls;
 window.debugClubDatabase = debugClubDatabase;
+window.debugUrlParams = debugUrlParams;
+
+// URL에서 인증 토큰 파라미터 정리 함수
+function cleanupAuthParams() {
+    try {
+        const url = new URL(window.location.href);
+        const hash = url.hash;
+        
+        // URL 해시에서 인증 토큰 파라미터 확인
+        if (hash && (hash.includes('access_token') || hash.includes('error'))) {
+            console.log('인증 토큰 파라미터 발견, 정리 중...');
+            
+            // 해시 파라미터 파싱
+            const params = new URLSearchParams(hash.substring(1));
+            const accessToken = params.get('access_token');
+            const error = params.get('error');
+            
+            if (accessToken) {
+                console.log('액세스 토큰 발견');
+                // 토큰을 Supabase에 전달
+                supabase.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: params.get('refresh_token') || ''
+                }).then(({ data, error }) => {
+                    if (error) {
+                        console.error('세션 설정 오류:', error);
+                    } else {
+                        console.log('세션 설정 성공');
+                        // URL에서 토큰 파라미터 제거
+                        window.history.replaceState({}, document.title, url.pathname);
+                    }
+                });
+            } else if (error) {
+                console.error('인증 오류:', error);
+                alert('로그인 중 오류가 발생했습니다: ' + error);
+                // URL에서 오류 파라미터 제거
+                window.history.replaceState({}, document.title, url.pathname);
+            }
+        }
+    } catch (error) {
+        console.error('URL 파라미터 정리 중 오류:', error);
+    }
+}

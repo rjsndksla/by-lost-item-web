@@ -69,6 +69,10 @@ async function signInWithGoogle() {
         
         console.log('설정된 리다이렉트 URL:', redirectUrl);
         
+        // 현재 URL에서 해시 파라미터 제거
+        const cleanUrl = window.location.href.split('#')[0];
+        console.log('정리된 URL:', cleanUrl);
+        
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: { 
