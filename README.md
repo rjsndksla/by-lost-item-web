@@ -85,9 +85,6 @@ debugSupabaseConfig();
 1. **Google Cloud Console** → **APIs & Services** → **Credentials**
 2. **OAuth 2.0 Client ID** 선택
 3. **Authorized redirect URIs**에 다음 추가:
-   ```
-   https://jyvgzfewhwwkygxlbvvt.supabase.co/auth/v1/callback
-   ```
 
 #### **3-4. 로컬 개발 환경**
 로컬에서 테스트하는 경우:
