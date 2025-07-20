@@ -2,43 +2,212 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>동아리 목록 - 부용고 온라인 홍보관</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
   <script defer src="script.js"></script>
+  <style>
+    /* 동아리 목록 페이지 모바일 최적화 */
+    @media (max-width: 768px) {
+      .club-container {
+        padding: 20px;
+        margin-top: 80px;
+      }
+      
+      .club-search-filter {
+        margin-bottom: 30px;
+      }
+      
+      .club-category-nav {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        padding: 10px 0;
+      }
+      
+      .club-category-btn {
+        font-size: 1.1rem;
+        padding: 12px 20px;
+        border-radius: 12px;
+        white-space: nowrap;
+        min-width: 80px;
+      }
+      
+      .club-list {
+        gap: 20px;
+      }
+      
+      .club-card {
+        padding: 25px 20px;
+        border-radius: 16px;
+        margin-bottom: 20px;
+      }
+      
+      .club-card h3 {
+        font-size: 1.4rem;
+        margin-bottom: 15px;
+      }
+      
+      .club-card p {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        margin-bottom: 12px;
+      }
+      
+      .club-card .club-category {
+        font-size: 1rem;
+        padding: 8px 12px;
+        border-radius: 8px;
+      }
+      
+      .club-card .club-contact {
+        font-size: 1.1rem;
+        margin-top: 15px;
+      }
+      
+      .club-card img {
+        width: 100%;
+        height: 200px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .club-container {
+        padding: 15px;
+      }
+      
+      .club-category-nav {
+        gap: 8px;
+        padding: 8px 0;
+      }
+      
+      .club-category-btn {
+        font-size: 1rem;
+        padding: 10px 16px;
+        min-width: 70px;
+      }
+      
+      .club-card {
+        padding: 20px 15px;
+        margin-bottom: 15px;
+      }
+      
+      .club-card h3 {
+        font-size: 1.3rem;
+        margin-bottom: 12px;
+      }
+      
+      .club-card p {
+        font-size: 1rem;
+        margin-bottom: 10px;
+      }
+      
+      .club-card img {
+        height: 180px;
+        margin-bottom: 12px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="club-container">
     <header class="header">
       <div class="nav-container">
         <nav class="nav">
           <a href="buyong.html" class="back-to-hub-btn">← 부용관으로 돌아가기</a>
           <a href="club.html" class="logo">동아리 온라인 홍보관</a>
-          <ul class="nav-menu">
+          
+          <!-- 햄버거 메뉴 버튼 (모바일) -->
+          <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
+          </button>
+          
+          <!-- 데스크톱 네비게이션 -->
+          <ul class="nav-menu desktop-menu">
             <li class="nav-item"><a href="club.html" class="nav-link">홈</a></li>
             <li class="nav-item"><a href="club-list.html" class="nav-link active">동아리 목록</a></li>
             <li class="nav-item"><a href="club-register.html" class="nav-link">동아리 등록</a></li>
           </ul>
-          <div id="auth-container">
+          
+          <!-- 데스크톱 인증 -->
+          <div id="auth-container" class="desktop-auth">
             <button id="loginBtn" class="auth-btn" onclick="openAuthModal()">로그인/회원가입</button>
           </div>
-          <div id="user-info" style="display: none;"></div>
+          <div id="user-info" class="desktop-user" style="display: none;"></div>
         </nav>
+        
+        <!-- 모바일 메뉴 오버레이 -->
+        <div class="mobile-menu-overlay" id="mobileMenuOverlay">
+            <div class="mobile-menu-content">
+                <div class="mobile-menu-header">
+                    <h3>메뉴</h3>
+                    <button class="mobile-menu-close" onclick="toggleMobileMenu()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <ul class="mobile-nav-menu">
+                    <li class="mobile-nav-item">
+                        <a href="club.html" class="mobile-nav-link" onclick="toggleMobileMenu()">
+                            <i class="fas fa-home"></i>
+                            <span>홈</span>
+                        </a>
+                    </li>
+                    <li class="mobile-nav-item">
+                        <a href="club-list.html" class="mobile-nav-link" onclick="toggleMobileMenu()">
+                            <i class="fas fa-list"></i>
+                            <span>동아리 목록</span>
+                        </a>
+                    </li>
+                    <li class="mobile-nav-item">
+                        <a href="club-register.html" class="mobile-nav-link" onclick="toggleMobileMenu()">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>동아리 등록</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- 부용관으로 돌아가기 (맨 아래) -->
+                <div class="mobile-back-section">
+                    <a href="buyong.html" class="mobile-nav-link back-link" onclick="toggleMobileMenu()">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>부용관으로 돌아가기</span>
+                    </a>
+                </div>
+                
+                <!-- 모바일 인증 -->
+                <div class="mobile-auth-section">
+                    <div id="mobile-auth-container">
+                        <button class="mobile-auth-btn" onclick="openAuthModal(); toggleMobileMenu();">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>로그인/회원가입</span>
+                        </button>
+                    </div>
+                    <div id="mobile-user-info" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
       </div>
     </header>
-    <div class="club-search-filter">
-      <div class="club-category-nav">
-        <button class="club-category-btn active" data-category="all">전체</button>
-        <button class="club-category-btn" data-category="nature">자연</button>
-        <button class="club-category-btn" data-category="humanities">인문</button>
-        <button class="club-category-btn" data-category="art">예체능</button>
+    <div class="club-container">
+      <div class="club-search-filter">
+        <div class="club-category-nav">
+          <button class="club-category-btn active" data-category="all">전체</button>
+          <button class="club-category-btn" data-category="nature">자연</button>
+          <button class="club-category-btn" data-category="humanities">인문</button>
+          <button class="club-category-btn" data-category="art">예체능</button>
+        </div>
       </div>
+      <main class="club-list-area">
+        <div class="club-list" id="club-list">
+          <!-- JS로 동아리 목록 렌더링 -->
+        </div>
+      </main>
     </div>
-    <main class="club-list-area">
-      <div class="club-list" id="club-list">
-        <!-- JS로 동아리 목록 렌더링 -->
-      </div>
-    </main>
-  </div>
   <!-- 인증 모달 추가 (club.html과 동일) -->
   <div id="authModal" class="modal" style="display: none;">
     <div class="modal-content">
@@ -110,5 +279,6 @@
   </div>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="script.js"></script>
 </body>
 </html> 

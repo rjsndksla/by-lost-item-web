@@ -200,6 +200,12 @@ async function getPosts(type = null, limit = 50) {
         
         if (error) {
             console.error('Supabase 오류:', error);
+            console.error('오류 상세 정보:', {
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code
+            });
             throw new Error('데이터베이스 조회 오류: ' + error.message);
         }
         
@@ -313,6 +319,38 @@ async function getPostByIdWithRetry(postId, retries = 3) {
     }
 }
 
+// 검색 함수 - 제목과 설명에서 검색
+async function searchPosts(searchTerm, limit = 50) {
+    try {
+        if (!searchTerm || searchTerm.trim() === '') {
+            return await getPosts(null, limit);
+        }
+
+        const { data, error } = await supabase
+            .from('posts')
+            .select('*')
+            .or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            console.error('검색 오류:', error);
+            throw new Error('검색 중 오류가 발생했습니다: ' + error.message);
+        }
+
+        return data || [];
+    } catch (error) {
+        console.error('searchPosts 오류:', error);
+        
+        // 네트워크 오류인지 확인
+        if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+            throw new Error('네트워크 연결 오류입니다. 인터넷 연결을 확인해주세요.');
+        }
+        
+        throw error;
+    }
+}
+
 // 네트워크 상태 확인 함수
 function checkNetworkStatus() {
     if (!navigator.onLine) {
@@ -331,4 +369,5 @@ window.updatePost = updatePost;
 window.uploadImage = uploadImage;
 window.escapeHtml = escapeHtml;
 window.checkNetworkStatus = checkNetworkStatus;
+window.searchPosts = searchPosts;
 // window.createPost = createPost; // 이미 위에서 등록됨 

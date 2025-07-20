@@ -15,16 +15,81 @@
             <nav class="nav">
                 <a href="buyong.html" class="back-to-hub-btn">← 부용관으로 돌아가기</a>
                 <a href="index.html" class="logo">부용고 분실물 찾기</a>
-                <ul class="nav-menu">
+                
+                <!-- 햄버거 메뉴 버튼 (모바일) -->
+                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                
+                <!-- 데스크톱 네비게이션 -->
+                <ul class="nav-menu desktop-menu">
                     <li class="nav-item"><a href="index.html" class="nav-link active">홈</a></li>
                     <li class="nav-item"><a href="list.html" class="nav-link">등록된 분실물</a></li>
                     <li class="nav-item"><a href="register.html" class="nav-link">분실물 등록/찾기</a></li>
                 </ul>
-                <div id="auth-container">
+                
+                <!-- 데스크톱 인증 -->
+                <div id="auth-container" class="desktop-auth">
                     <button id="loginBtn" class="auth-btn" onclick="openAuthModal()">로그인/회원가입</button>
                 </div>
-                <div id="user-info" style="display: none;"></div>
+                <div id="user-info" class="desktop-user" style="display: none;"></div>
             </nav>
+            
+            <!-- 모바일 메뉴 오버레이 -->
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay">
+                <div class="mobile-menu-content">
+                    <div class="mobile-menu-header">
+                        <h3>메뉴</h3>
+                        <button class="mobile-menu-close" onclick="toggleMobileMenu()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mobile-menu-main">
+                        <ul class="mobile-nav-menu">
+                            <li class="mobile-nav-item">
+                                <a href="index.html" class="mobile-nav-link" onclick="toggleMobileMenu()">
+                                    <i class="fas fa-home"></i>
+                                    <span>홈</span>
+                                </a>
+                            </li>
+                            <li class="mobile-nav-item">
+                                <a href="list.html" class="mobile-nav-link" onclick="toggleMobileMenu()">
+                                    <i class="fas fa-list"></i>
+                                    <span>등록된 분실물</span>
+                                </a>
+                            </li>
+                            <li class="mobile-nav-item">
+                                <a href="register.html" class="mobile-nav-link" onclick="toggleMobileMenu()">
+                                    <i class="fas fa-plus-circle"></i>
+                                    <span>분실물 등록/찾기</span>
+                                </a>
+                            </li>
+                        </ul>
+                        
+                        <!-- 모바일 인증 -->
+                        <div class="mobile-auth-section">
+                            <div id="mobile-auth-container">
+                                <button class="mobile-auth-btn" onclick="openAuthModal(); toggleMobileMenu();">
+                                    <i class="fas fa-sign-in-alt"></i>
+                                    <span>로그인/회원가입</span>
+                                </button>
+                            </div>
+                            <div id="mobile-user-info" style="display: none;"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 모바일 메뉴 하단에 부용관으로 돌아가기 버튼 추가 -->
+                    <div class="mobile-back-to-hub-section">
+                        <a href="buyong.html" class="mobile-back-to-hub-btn" onclick="toggleMobileMenu()">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>부용관으로 돌아가기</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </header>
     <main class="main-content">
@@ -74,15 +139,9 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="foundDate">발견 날짜 <span class="required">*</span></label>
-                                <input type="date" id="foundDate" name="foundDate" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="foundTime">발견 시간</label>
-                                <input type="time" id="foundTime" name="foundTime">
-                            </div>
+                        <div class="form-group">
+                            <label for="foundDate">발견 날짜 <span class="required">*</span></label>
+                            <input type="date" id="foundDate" name="foundDate" required>
                         </div>
                         <div class="form-group">
                             <label for="foundLocation">발견 장소 <span class="required">*</span></label>
@@ -130,15 +189,9 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="lostDate">분실 날짜 <span class="required">*</span></label>
-                                <input type="date" id="lostDate" name="lostDate" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="lostTime">분실 시간</label>
-                                <input type="time" id="lostTime" name="lostTime">
-                            </div>
+                        <div class="form-group">
+                            <label for="lostDate">분실 날짜 <span class="required">*</span></label>
+                            <input type="date" id="lostDate" name="lostDate" required>
                         </div>
                         <div class="form-group">
                             <label for="lostLocation">분실 장소 <span class="required">*</span></label>
@@ -170,6 +223,12 @@
                 <div id="loadingIndicator" class="loading-indicator" style="display: none;">
                     <div class="loading-spinner"></div>
                     <p>더 많은 게시글을 불러오는 중...</p>
+                </div>
+            </section>
+            <section id="search-results" class="section">
+                <h2 class="section-title">검색 결과</h2>
+                <div class="items-grid" id="searchResultsGrid">
+                    <!-- 검색 결과가 여기에 표시됩니다 -->
                 </div>
             </section>
         </div>

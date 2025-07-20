@@ -14,6 +14,12 @@ window.addEventListener('DOMContentLoaded', async function() {
     // URL에서 인증 토큰 파라미터 정리
     cleanupAuthParams();
     
+    // 인증 상태 확인 전까지 UI 숨기기
+    const authContainer = document.getElementById('auth-container');
+    const userInfo = document.getElementById('user-info');
+    if (authContainer) authContainer.style.display = 'none';
+    if (userInfo) userInfo.style.display = 'none';
+    
     initializeDateFields();
     initializeFormListeners();
     initializeSearch();
@@ -137,26 +143,61 @@ window.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email: email,
-                password: password
-            });
+            // 로그인 버튼 비활성화 및 로딩 상태
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = '로그인 중...';
 
-            // 인증 미완료 계정 로그인 차단 안내
-            if (error && error.message && (error.message.toLowerCase().includes('email not confirmed') || error.message.toLowerCase().includes('email confirmation'))) {
-                alert('이메일 인증이 완료되지 않았습니다.\n메일을 확인해 인증을 완료해 주세요.');
-                return;
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                // 인증 미완료 계정 로그인 차단 안내
+                if (error && error.message && (error.message.toLowerCase().includes('email not confirmed') || error.message.toLowerCase().includes('email confirmation'))) {
+                    alert('이메일 인증이 완료되지 않았습니다.\n메일을 확인해 인증을 완료해 주세요.');
+                    return;
+                }
+
+                if (error) {
+                    alert('로그인 실패: ' + error.message);
+                    return;
+                }
+
+                // 즉시 UI를 로그인 상태로 변경
+                const authContainer = document.getElementById('auth-container');
+                const userInfo = document.getElementById('user-info');
+                if (authContainer) authContainer.style.display = 'none';
+                if (userInfo) {
+                    userInfo.style.display = 'flex';
+                    userInfo.innerHTML = `
+                        <div class="user-menu">
+                            <button class="user-menu-button" onclick="toggleUserMenu(this)">
+                                ${data.user.email}
+                                <span class="menu-arrow">▼</span>
+                            </button>
+                            <div class="user-menu-content">
+                                <a href="${window.location.pathname.includes('club') ? 'club_profile.html' : 'profile.html'}">내 프로필</a>
+                                <a href="#" onclick="handleLogout()">로그아웃</a>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 로그인 성공 시 조용히 처리
+                this.reset();
+                closeAuthModal();
+                
+            } catch (error) {
+                console.error('로그인 중 오류:', error);
+                alert('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+            } finally {
+                // 버튼 상태 복원
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
             }
-
-            if (error) {
-                alert('로그인 실패: ' + error.message);
-                return;
-            }
-
-            alert('로그인 성공!');
-            this.reset();
-            closeAuthModal();
-            await checkAuthState();
         });
     }
 
@@ -189,6 +230,9 @@ window.addEventListener('DOMContentLoaded', async function() {
 
     // 이메일 중복 확인 기능 추가
     initializeEmailValidation();
+    
+    // 모바일 메뉴 초기화
+    initializeMobileMenu();
 });
 
 // 이메일 중복 확인 기능
@@ -287,6 +331,66 @@ function clearEmailStatus() {
     }
 }
 
+// 모바일 메뉴 초기화
+function initializeMobileMenu() {
+    // 모바일 메뉴 오버레이 클릭 시 닫기
+    const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+    if (mobileMenuOverlay) {
+        mobileMenuOverlay.addEventListener('click', function(e) {
+            if (e.target === mobileMenuOverlay) {
+                toggleMobileMenu();
+            }
+        });
+    }
+    
+    // ESC 키로 메뉴 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeMobileMenu();
+        }
+    });
+}
+
+// 모바일 메뉴 토글
+function toggleMobileMenu() {
+    const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+    
+    if (mobileMenuOverlay && mobileMenuToggle) {
+        const isActive = mobileMenuOverlay.classList.contains('active');
+        
+        if (isActive) {
+            closeMobileMenu();
+        } else {
+            openMobileMenu();
+        }
+    }
+}
+
+// 모바일 메뉴 열기
+function openMobileMenu() {
+    const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+    
+    if (mobileMenuOverlay && mobileMenuToggle) {
+        mobileMenuOverlay.classList.add('active');
+        mobileMenuToggle.classList.add('active');
+        document.body.style.overflow = 'hidden'; // 스크롤 방지
+    }
+}
+
+// 모바일 메뉴 닫기
+function closeMobileMenu() {
+    const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+    
+    if (mobileMenuOverlay && mobileMenuToggle) {
+        mobileMenuOverlay.classList.remove('active');
+        mobileMenuToggle.classList.remove('active');
+        document.body.style.overflow = ''; // 스크롤 복원
+    }
+}
+
 // 로그인 상태 확인 및 UI 업데이트
 async function checkAuthState() {
     try {
@@ -325,7 +429,7 @@ async function checkAuthState() {
         const authContainer = document.getElementById('auth-container');
         const userInfo = document.getElementById('user-info');
         
-        if (user) {
+        if (user && user.email) {
             console.log('로그인된 사용자:', user.email);
             // 로그인 상태
             if (authContainer) authContainer.style.display = 'none';
@@ -344,11 +448,45 @@ async function checkAuthState() {
                     </div>
                 `;
             }
+            
+            // 모바일 사용자 정보 업데이트
+            const mobileUserInfo = document.getElementById('mobile-user-info');
+            const mobileAuthContainer = document.getElementById('mobile-auth-container');
+            if (mobileUserInfo && mobileAuthContainer) {
+                mobileAuthContainer.style.display = 'none';
+                mobileUserInfo.style.display = 'block';
+                mobileUserInfo.innerHTML = `
+                    <div class="mobile-user-menu">
+                        <div class="mobile-user-info">
+                            <i class="fas fa-user"></i>
+                            <span>${user.email}</span>
+                        </div>
+                        <div class="mobile-user-actions">
+                            <a href="${window.location.pathname.includes('club') ? 'club_profile.html' : 'profile.html'}" onclick="closeMobileMenu()">
+                                <i class="fas fa-user-circle"></i>
+                                <span>내 프로필</span>
+                            </a>
+                            <a href="#" onclick="handleLogout(); closeMobileMenu();">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>로그아웃</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
         } else {
             console.log('로그아웃 상태');
             // 로그아웃 상태
             if (authContainer) authContainer.style.display = 'block';
             if (userInfo) userInfo.style.display = 'none';
+            
+            // 모바일 로그아웃 상태 업데이트
+            const mobileUserInfo = document.getElementById('mobile-user-info');
+            const mobileAuthContainer = document.getElementById('mobile-auth-container');
+            if (mobileUserInfo && mobileAuthContainer) {
+                mobileAuthContainer.style.display = 'block';
+                mobileUserInfo.style.display = 'none';
+            }
         }
     } catch (error) {
         console.error('인증 상태 확인 중 예외 발생:', error);
@@ -384,13 +522,29 @@ function toggleUserMenu(button) {
 
 // 로그아웃 처리
 async function handleLogout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-        alert('로그아웃 실패: ' + error.message);
-        return;
+    try {
+        // 즉시 UI를 로그아웃 상태로 변경
+        const authContainer = document.getElementById('auth-container');
+        const userInfo = document.getElementById('user-info');
+        if (authContainer) authContainer.style.display = 'block';
+        if (userInfo) userInfo.style.display = 'none';
+        
+        // Supabase 로그아웃
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            alert('로그아웃 실패: ' + error.message);
+            // 실패 시 UI 복원
+            if (authContainer) authContainer.style.display = 'none';
+            if (userInfo) userInfo.style.display = 'flex';
+            return;
+        }
+        
+        // 로그아웃 성공 시 즉시 홈페이지로 이동
+        window.location.href = 'index.html';
+    } catch (error) {
+        console.error('로그아웃 중 오류:', error);
+        alert('로그아웃 중 오류가 발생했습니다.');
     }
-    await checkAuthState();
-    location.reload(); // 로그아웃 후 즉시 새로고침
 }
 
 // 날짜 필드 초기화
@@ -446,7 +600,7 @@ function initializeFormListeners() {
             try {
                 const result = await window.createPost(post);
                 if (result) {
-                    alert('주운 물건이 성공적으로 등록되었습니다!');
+                    showSuccessPopup();
                     this.reset();
                     document.getElementById('foundDate').value = new Date().toISOString().split('T')[0];
                     // 이미지 프리뷰 초기화
@@ -535,7 +689,7 @@ function initializeFormListeners() {
             try {
                 const result = await window.createPost(post);
                 if (result) {
-                    alert('분실물 찾기 게시글이 성공적으로 등록되었습니다!');
+                    showSuccessPopup();
                     this.reset();
                     document.getElementById('lostDate').value = new Date().toISOString().split('T')[0];
                     // 이미지 프리뷰 초기화
@@ -589,20 +743,47 @@ function initializeFormListeners() {
 function initializeSearch() {
     const searchButton = document.querySelector('.search-button');
     const searchInput = document.querySelector('.search-input');
+    
     if (searchButton) searchButton.addEventListener('click', handleSearch);
-    if (searchInput) searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') handleSearch();
-    });
+    
+    if (searchInput) {
+        // Enter 키 이벤트
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') handleSearch();
+        });
+        
+        // 실시간 검색 (디바운싱 적용)
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const searchTerm = this.value.trim();
+            
+            if (searchTerm.length >= 2) {
+                // 2글자 이상일 때만 검색 실행, 500ms 딜레이
+                searchTimeout = setTimeout(() => {
+                    handleSearch();
+                }, 500);
+            } else if (searchTerm.length === 0) {
+                // 검색어가 없으면 홈 페이지로 복귀
+                searchTimeout = setTimeout(() => {
+                    loadHomePagePosts();
+                }, 300);
+            }
+        });
+    }
 }
-function handleSearch() {
+async function handleSearch() {
     const searchInput = document.querySelector('.search-input');
     if (!searchInput) return;
+    
     const searchTerm = searchInput.value.trim();
-    if (searchTerm) {
-        alert('검색 결과를 확인하세요: ' + searchTerm);
-    } else {
+    if (!searchTerm) {
         alert('검색어를 입력해주세요.');
+        return;
     }
+
+    // 검색 결과 페이지로 이동
+    window.location.href = `search-results.html?q=${encodeURIComponent(searchTerm)}`;
 }
 
 // 인증 모달 초기화
@@ -615,6 +796,158 @@ function initializeAuthModal() {
         const authModal = document.getElementById('authModal');
         if (event.target === authModal) closeAuthModal();
     };
+}
+
+// 성공 팝업 함수들
+function showSuccessPopup() {
+    const popup = document.getElementById('successPopup');
+    if (popup) {
+        popup.style.display = 'flex';
+    }
+}
+
+function closeSuccessPopup() {
+    const popup = document.getElementById('successPopup');
+    if (popup) {
+        popup.style.display = 'none';
+    }
+}
+
+// 삭제 확인 팝업 함수들
+let currentDeletePostId = null;
+
+function showDeleteConfirmPopup(postId) {
+    currentDeletePostId = postId;
+    const popup = document.getElementById('deleteConfirmPopup');
+    if (popup) {
+        popup.style.display = 'flex';
+    }
+}
+
+function closeDeletePopup() {
+    const popup = document.getElementById('deleteConfirmPopup');
+    if (popup) {
+        popup.style.display = 'none';
+    }
+    currentDeletePostId = null;
+}
+
+async function confirmDelete() {
+    if (currentDeletePostId) {
+        try {
+            // 현재 페이지에 따라 다른 삭제 함수 호출
+            if (window.location.pathname.includes('club_profile.html')) {
+                await deleteClubPost(currentDeletePostId);
+            } else {
+                await deletePost(currentDeletePostId);
+            }
+            closeDeletePopup();
+            // 프로필 페이지 새로고침
+            if (window.location.pathname.includes('profile.html')) {
+                await loadUserPosts((await supabase.auth.getUser()).data.user.id);
+            } else if (window.location.pathname.includes('club_profile.html')) {
+                await loadUserPosts((await supabase.auth.getUser()).data.user.id);
+            }
+        } catch (error) {
+            console.error('삭제 중 오류 발생:', error);
+            alert('삭제 중 오류가 발생했습니다.');
+        }
+    }
+}
+
+// 수정 팝업 함수들
+let currentEditPostId = null;
+
+async function showEditPopup(postId) {
+    currentEditPostId = postId;
+    
+    try {
+        // 게시글 데이터 가져오기
+        const { data: post, error } = await supabase
+            .from('posts')
+            .select('*')
+            .eq('id', postId)
+            .single();
+
+        if (error) throw error;
+
+        // 폼에 기존 데이터 채우기
+        document.getElementById('editItemName').value = post.title || '';
+        document.getElementById('editCategory').value = post.category || '';
+        document.getElementById('editDate').value = post.date_lost || '';
+        document.getElementById('editLocation').value = post.location || '';
+        document.getElementById('editDescription').value = post.description || '';
+        document.getElementById('editContactName').value = post.contact_name || '';
+        document.getElementById('editContactPhone').value = post.contact_phone || '';
+
+        // 팝업 표시
+        const popup = document.getElementById('editPopup');
+        if (popup) {
+            popup.style.display = 'flex';
+        }
+    } catch (error) {
+        console.error('게시글 데이터 로드 중 오류:', error);
+        alert('게시글 정보를 불러오는데 실패했습니다.');
+    }
+}
+
+function closeEditPopup() {
+    const popup = document.getElementById('editPopup');
+    if (popup) {
+        popup.style.display = 'none';
+    }
+    currentEditPostId = null;
+    
+    // 폼 초기화
+    document.getElementById('editForm').reset();
+}
+
+async function handleEditSubmit(e) {
+    e.preventDefault();
+    
+    if (!currentEditPostId) return;
+
+    try {
+        const formData = new FormData(e.target);
+        
+        const updateData = {
+            title: formData.get('itemName'),
+            category: formData.get('category'),
+            date_lost: formData.get('date'),
+            location: formData.get('location'),
+            description: formData.get('description'),
+            contact_name: formData.get('contactName'),
+            contact_phone: formData.get('contactPhone')
+        };
+
+        // 필수 필드 검증
+        const requiredFields = ['title', 'category', 'date_lost', 'location', 'contact_name', 'contact_phone'];
+        const missingFields = requiredFields.filter(field => !updateData[field]);
+        if (missingFields.length > 0) {
+            alert('필수 항목을 모두 입력해주세요.');
+            return;
+        }
+
+        // 데이터베이스 업데이트
+        const { error } = await supabase
+            .from('posts')
+            .update(updateData)
+            .eq('id', currentEditPostId);
+
+        if (error) throw error;
+
+        // 성공 메시지 표시
+        showSuccessToast('게시글이 수정되었습니다.');
+        closeEditPopup();
+
+        // 프로필 페이지 새로고침
+        if (window.location.pathname.includes('profile.html')) {
+            await loadUserPosts((await supabase.auth.getUser()).data.user.id);
+        }
+    } catch (error) {
+        console.error('게시글 수정 중 오류:', error);
+        alert('게시글 수정 중 오류가 발생했습니다.');
+    }
 }
 
 // 인증 모달 열기/닫기/폼 전환
@@ -649,6 +982,14 @@ window.showSignupForm = showSignupForm;
 window.showPasswordReset = showPasswordReset;
 window.handleLogout = handleLogout;
 window.toggleUserMenu = toggleUserMenu;
+window.showSuccessPopup = showSuccessPopup;
+window.closeSuccessPopup = closeSuccessPopup;
+window.showDeleteConfirmPopup = showDeleteConfirmPopup;
+window.closeDeletePopup = closeDeletePopup;
+window.confirmDelete = confirmDelete;
+window.showEditPopup = showEditPopup;
+window.closeEditPopup = closeEditPopup;
+window.handleEditSubmit = handleEditSubmit;
 // 소셜로그인 함수는 supabase-config.js에서 window에 등록됨 
 
 // HTML 이스케이프 함수
@@ -710,7 +1051,7 @@ async function loadUserPosts(userId) {
                             <button class="action-button" onclick="toggleActionMenu(this)">⋮</button>
                             <div class="action-menu">
                                 <button onclick="editClubPost('${post.id}')">수정</button>
-                                <button class="delete-btn" onclick="deleteClubPost('${post.id}')">삭제</button>
+                                <button class="delete-btn" onclick="showDeleteConfirmPopup('${post.id}')">삭제</button>
                             </div>
                         </div>
                     </div>
@@ -732,7 +1073,7 @@ async function loadUserPosts(userId) {
                             <button class="action-button" onclick="toggleActionMenu(this)">⋮</button>
                             <div class="action-menu">
                                 <button onclick="editPost('${post.id}')">수정</button>
-                                <button class="delete-btn" onclick="deletePost('${post.id}')">삭제</button>
+                                <button class="delete-btn" onclick="showDeleteConfirmPopup('${post.id}')">삭제</button>
                             </div>
                         </div>
                     </div>
@@ -789,17 +1130,8 @@ function closeAllActionMenus(event) {
 // 게시글 수정
 async function editPost(postId) {
     try {
-        // 게시글 데이터 가져오기
-        const { data: post, error } = await supabase
-            .from('posts')
-            .select('*')
-            .eq('id', postId)
-            .single();
-
-        if (error) throw error;
-
-        // 수정 모달 표시 로직 구현
-        alert('수정 기능은 곧 구현될 예정입니다.');
+        // 수정 팝업 표시
+        await showEditPopup(postId);
         
         // 액션 메뉴 닫기
         closeAllActionMenus({ target: document.body });
@@ -812,10 +1144,6 @@ async function editPost(postId) {
 // 게시글 삭제
 async function deletePost(postId) {
     try {
-        if (!confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
-            return;
-        }
-
         const { error } = await supabase
             .from('posts')
             .delete()
@@ -831,11 +1159,12 @@ async function deletePost(postId) {
 
         // 모든 게시글이 삭제된 경우 메시지 표시
         const postsGrid = document.getElementById('userPosts');
-        if (!postsGrid.children.length) {
+        if (postsGrid && !postsGrid.children.length) {
             postsGrid.innerHTML = '<p class="no-posts">작성한 게시글이 없습니다.</p>';
         }
 
-        alert('게시글이 삭제되었습니다.');
+        // 성공 메시지 표시
+        showSuccessToast('게시글이 삭제되었습니다.');
     } catch (error) {
         console.error('게시글 삭제 중 오류 발생:', error);
         alert('게시글 삭제 중 오류가 발생했습니다.');
@@ -997,7 +1326,7 @@ async function handleFormSubmit(e) {
 
         const result = await createPost(postData);
         if (result) {
-            alert('게시물이 성공적으로 등록되었습니다!');
+            showSuccessPopup();
             this.reset();
             document.getElementById(type === 'lost' ? 'lostDate' : 'foundDate').value = new Date().toISOString().split('T')[0];
             // 이미지 미리보기 초기화
@@ -1755,9 +2084,14 @@ function showSuccessToast(message) {
   setTimeout(() => { toast.remove(); }, 1500);
 }
 
-// club_profile.html: 동아리 게시글 삭제 (커스텀 모달 적용)
+// club_profile.html: 동아리 게시글 삭제 (새로운 팝업 적용)
 window.deleteClubPost = async function(postId) {
-  showDeleteConfirmModal(async () => {
+  showDeleteConfirmPopup(postId);
+};
+
+// 동아리 게시글 삭제 실행 함수
+async function deleteClubPost(postId) {
+  try {
     const { error } = await supabase.from('clubs').delete().eq('id', postId);
     if (error) {
       alert('삭제 실패: ' + error.message);
@@ -1772,8 +2106,11 @@ window.deleteClubPost = async function(postId) {
       postsGrid.innerHTML = '<p class="no-posts">등록한 동아리 게시글이 없습니다.</p>';
     }
     showSuccessToast('성공적으로 삭제되었습니다!');
-  });
-};
+  } catch (error) {
+    console.error('동아리 게시글 삭제 중 오류 발생:', error);
+    alert('삭제 중 오류가 발생했습니다.');
+  }
+}
 
 // club_profile.html: 동아리 게시글 수정 (커스텀 모달)
 window.editClubPost = async function(postId) {

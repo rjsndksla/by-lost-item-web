@@ -2,8 +2,100 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>부용관 - 메인 허브</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* 모바일 최적화 스타일 */
+    @media (max-width: 768px) {
+      .hub-container {
+        padding: 40px 20px;
+        margin: 20px;
+        border-radius: 20px;
+      }
+      
+      .hub-main-img {
+        width: 150px;
+        height: 150px;
+        margin-bottom: 30px;
+      }
+      
+      h1 {
+        font-size: 3rem;
+        margin-bottom: 25px;
+      }
+      
+      .hub-desc {
+        font-size: 1.3rem;
+        line-height: 1.8;
+        margin-bottom: 40px;
+      }
+      
+      .hub-desc span {
+        display: block;
+        margin-bottom: 8px;
+      }
+      
+      .hub-links {
+        gap: 25px;
+      }
+      
+      .hub-card {
+        padding: 30px 25px;
+        border-radius: 18px;
+        font-size: 1.2rem;
+      }
+      
+      .hub-card-img {
+        width: 80px;
+        height: 80px;
+        margin-right: 25px;
+      }
+      
+      .hub-card span {
+        font-size: 1.4rem;
+        font-weight: 600;
+      }
+    }
+    
+    /* 작은 모바일 화면 */
+    @media (max-width: 480px) {
+      .hub-container {
+        padding: 30px 15px;
+        margin: 15px;
+      }
+      
+      .hub-main-img {
+        width: 120px;
+        height: 120px;
+        margin-bottom: 25px;
+      }
+      
+      h1 {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+      }
+      
+      .hub-desc {
+        font-size: 1.1rem;
+        margin-bottom: 35px;
+      }
+      
+      .hub-card {
+        padding: 25px 20px;
+      }
+      
+      .hub-card-img {
+        width: 70px;
+        height: 70px;
+        margin-right: 20px;
+      }
+      
+      .hub-card span {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="hub-container">
