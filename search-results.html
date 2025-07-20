@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>프로필 - 분실물 찾기</title>
+    <meta name="description" content="분실물 검색 결과를 제공하는 분실물 찾기 서비스입니다.">
+    <title>검색 결과 - 분실물 찾기 서비스</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -90,108 +92,114 @@
             </div>
         </div>
     </header>
-
-    <div class="profile-container">
-        <div class="profile-sidebar">
-            <div class="user-info">
-                <h2>내 프로필</h2>
-                <p class="user-email-display"></p>
-            </div>
+    
+    <main class="main-content">
+        <div class="container">
+            <section id="search-results" class="section active">
+                <div class="search-results-header">
+                    <h1 class="section-title">검색 결과</h1>
+                    <div class="search-info">
+                        <div id="searchTerm" class="search-term"></div>
+                        <div id="searchCount" class="search-count"></div>
+                    </div>
+                    <button onclick="location.href='index.html'" class="search-results-back-btn">
+                        <i class="fas fa-home"></i> 홈으로 돌아가기
+                    </button>
+                </div>
+                
+                <div class="items-grid" id="searchResultsGrid">
+                    <!-- 검색 결과가 여기에 동적으로 로드됩니다 -->
+                    <div class="loading-indicator">
+                        <div class="loading-spinner"></div>
+                        <p>검색 결과를 불러오는 중...</p>
+                    </div>
+                </div>
+            </section>
         </div>
-        
-        <div class="profile-content">
-            <h3>내가 작성한 게시글</h3>
-            <div class="posts-grid" id="userPosts">
-                <!-- 게시글이 여기에 동적으로 로드됩니다 -->
-            </div>
-        </div>
-    </div>
+    </main>
+    
+    <footer style="text-align:center; color:#888; padding:24px 0 12px 0; font-size:0.95em;">
+        &copy; 2024 분실물 찾기 서비스. All rights reserved.
+    </footer>
 
-    <!-- 삭제 확인 팝업 -->
-    <div id="deleteConfirmPopup" class="popup-overlay" style="display: none;">
-        <div class="popup-content delete-popup">
-            <div class="popup-icon">
-                <i class="fas fa-exclamation-triangle"></i>
+    <!-- 통합 인증 모달 -->
+    <div id="authModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeAuthModal()">&times;</span>
+            
+            <!-- 로그인 폼 -->
+            <div id="loginForm" class="auth-form">
+                <h2>로그인</h2>
+                <form id="emailLoginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">이메일</label>
+                        <input type="email" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">비밀번호</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="submit-button">로그인</button>
+                </form>
+                
+                <div class="auth-links">
+                    <a href="#" class="auth-link" onclick="showSignupForm()">회원가입</a>
+                    <span class="auth-separator">|</span>
+                    <a href="#" class="auth-link" onclick="showPasswordReset()">비밀번호 찾기</a>
+                </div>
+                
+                <div class="social-login">
+                    <button onclick="signInWithGoogle()" class="social-btn google-btn">
+                        <i class="fab fa-google"></i> Google로 로그인
+                    </button>
+                </div>
             </div>
-            <h3>게시물 삭제</h3>
-            <p>정말로 이 게시물을 삭제하시겠습니까?</p>
-            <p class="delete-warning">삭제된 게시물은 복구할 수 없습니다.</p>
-            <div class="popup-buttons">
-                <button onclick="confirmDelete()" class="popup-button delete-btn">삭제</button>
-                <button onclick="closeDeletePopup()" class="popup-button cancel-btn">취소</button>
+            
+            <!-- 회원가입 폼 -->
+            <div id="signupForm" class="auth-form" style="display: none;">
+                <h2>회원가입</h2>
+                <form id="emailSignupForm">
+                    <div class="form-group">
+                        <label for="signupEmail">이메일</label>
+                        <input type="email" id="signupEmail" required>
+                        <div id="emailStatus" class="email-status"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">비밀번호</label>
+                        <input type="password" id="signupPassword" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPasswordConfirm">비밀번호 확인</label>
+                        <input type="password" id="signupPasswordConfirm" required minlength="6">
+                    </div>
+                    <button type="submit" class="submit-button">회원가입</button>
+                </form>
+                
+                <div class="auth-links">
+                    <a href="#" class="auth-link" onclick="showLoginForm()">이미 계정이 있으신가요? 로그인</a>
+                </div>
             </div>
-        </div>
-    </div>
-
-    <!-- 수정 팝업 -->
-    <div id="editPopup" class="popup-overlay" style="display: none;">
-        <div class="popup-content edit-popup">
-            <div class="popup-header">
-                <h3>게시물 수정</h3>
-                <button onclick="closeEditPopup()" class="popup-close-btn">
-                    <i class="fas fa-times"></i>
-                </button>
+            
+            <!-- 비밀번호 재설정 폼 -->
+            <div id="passwordResetForm" class="auth-form" style="display: none;">
+                <h2>비밀번호 재설정</h2>
+                <form id="resetPasswordForm">
+                    <div class="form-group">
+                        <label for="resetEmail">이메일</label>
+                        <input type="email" id="resetEmail" required>
+                    </div>
+                    <button type="submit" class="submit-button">비밀번호 재설정 이메일 전송</button>
+                </form>
+                
+                <div class="auth-links">
+                    <a href="#" class="auth-link" onclick="showLoginForm()">로그인으로 돌아가기</a>
+                </div>
             </div>
-            <form id="editForm" class="edit-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="editItemName">물건명 <span class="required">*</span></label>
-                        <input type="text" id="editItemName" name="itemName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editCategory">분류 <span class="required">*</span></label>
-                        <select id="editCategory" name="category" required>
-                            <option value="">분류를 선택하세요</option>
-                            <option value="전자기기">전자기기</option>
-                            <option value="지갑/카드">지갑/카드</option>
-                            <option value="의류/신발">의류/신발</option>
-                            <option value="가방/백팩">가방/백팩</option>
-                            <option value="서적/문구">서적/문구</option>
-                            <option value="악세서리">악세서리</option>
-                            <option value="기타">기타</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="editDate">날짜 <span class="required">*</span></label>
-                    <input type="date" id="editDate" name="date" required>
-                </div>
-                <div class="form-group">
-                    <label for="editLocation">장소 <span class="required">*</span></label>
-                    <input type="text" id="editLocation" name="location" required>
-                </div>
-                <div class="form-group">
-                    <label for="editDescription">상세 설명</label>
-                    <textarea id="editDescription" name="description" rows="3"></textarea>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="editContactName">이름 <span class="required">*</span></label>
-                        <input type="text" id="editContactName" name="contactName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editContactPhone">연락처 <span class="required">*</span></label>
-                        <input type="text" id="editContactPhone" name="contactPhone" required>
-                    </div>
-                </div>
-                <div class="popup-buttons">
-                    <button type="submit" class="popup-button save-btn">저장</button>
-                    <button type="button" onclick="closeEditPopup()" class="popup-button cancel-btn">취소</button>
-                </div>
-            </form>
         </div>
     </div>
 
     <script src="supabase-config.js"></script>
     <script src="script.js"></script>
-    <script>
-        // 수정 폼 이벤트 리스너 추가
-        document.addEventListener('DOMContentLoaded', function() {
-            const editForm = document.getElementById('editForm');
-            if (editForm) {
-                editForm.addEventListener('submit', handleEditSubmit);
-            }
-        });
-    </script>
+    <script src="search-results.js"></script>
 </body>
 </html> 

@@ -2,31 +2,223 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>동아리 온라인 홍보관</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* 동아리 홈페이지 모바일 최적화 */
+    @media (max-width: 768px) {
+      .club-search-filter {
+        padding: 20px;
+        margin-top: 80px;
+      }
+      
+      .club-search-filter input {
+        font-size: 1.1rem;
+        padding: 15px 20px;
+        border-radius: 12px;
+      }
+      
+      .home-section {
+        padding: 30px 20px;
+      }
+      
+      .section-title {
+        font-size: 2rem;
+        margin-bottom: 25px;
+      }
+      
+      .items-grid {
+        gap: 20px;
+        padding: 0 10px;
+      }
+      
+      .club-card {
+        padding: 25px 20px;
+        border-radius: 16px;
+        margin-bottom: 20px;
+      }
+      
+      .club-card h3 {
+        font-size: 1.4rem;
+        margin-bottom: 15px;
+      }
+      
+      .club-card p {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        margin-bottom: 12px;
+      }
+      
+      .club-card .club-category {
+        font-size: 1rem;
+        padding: 8px 12px;
+        border-radius: 8px;
+      }
+      
+      .club-card .club-contact {
+        font-size: 1.1rem;
+        margin-top: 15px;
+      }
+      
+      .club-card img {
+        width: 100%;
+        height: 200px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .club-search-filter {
+        padding: 15px;
+      }
+      
+      .club-search-filter input {
+        font-size: 1rem;
+        padding: 12px 16px;
+      }
+      
+      .home-section {
+        padding: 25px 15px;
+      }
+      
+      .section-title {
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+      }
+      
+      .club-card {
+        padding: 20px 15px;
+        margin-bottom: 15px;
+      }
+      
+      .club-card h3 {
+        font-size: 1.3rem;
+        margin-bottom: 12px;
+      }
+      
+      .club-card p {
+        font-size: 1rem;
+        margin-bottom: 10px;
+      }
+      
+      .club-card img {
+        height: 180px;
+        margin-bottom: 12px;
+      }
+    }
+    
+    /* 모바일 메뉴에서 부용관으로 돌아가기 링크 스타일 */
+    .mobile-back-section {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+    }
+    
+    .mobile-back-section .back-link {
+      color: #666;
+      font-weight: 500;
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: background-color 0.2s;
+    }
+    
+    .mobile-back-section .back-link:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .mobile-back-section .back-link i {
+      font-size: 1.1rem;
+    }
+  </style>
 </head>
 <body>
   <header class="header">
     <div class="nav-container">
       <nav class="nav">
         <a href="buyong.html" class="back-to-hub-btn">← 부용관으로 돌아가기</a>
-        <a href="club.html" class="logo" style="color:#2c3e50; font-weight:700;">동아리 온라인 홍보관</a>
-        <ul class="nav-menu">
-          <li class="nav-item"><a href="club.html" class="nav-link active" style="background:#2c3e50; color:#fff; border-radius:4px;">홈</a></li>
-          <li class="nav-item"><a href="club-list.html" class="nav-link" style="border-radius:4px;">동아리 목록</a></li>
-          <li class="nav-item"><a href="club-register.html" class="nav-link" style="border-radius:4px;">동아리 등록</a></li>
+        <a href="club.html" class="logo">동아리 온라인 홍보관</a>
+        
+        <!-- 햄버거 메뉴 버튼 (모바일) -->
+        <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+        </button>
+        
+        <!-- 데스크톱 네비게이션 -->
+        <ul class="nav-menu desktop-menu">
+          <li class="nav-item"><a href="club.html" class="nav-link active">홈</a></li>
+          <li class="nav-item"><a href="club-list.html" class="nav-link">동아리 목록</a></li>
+          <li class="nav-item"><a href="club-register.html" class="nav-link">동아리 등록</a></li>
         </ul>
-        <div id="auth-container">
-          <button id="loginBtn" class="auth-btn" style="background:#2c3e50; color:#fff; border-radius:4px;">로그인/회원가입</button>
-          <button id="club-logout-btn" class="auth-btn" style="display:none; background:#2c3e50; color:#fff; border-radius:4px;">로그아웃</button>
+        
+        <!-- 데스크톱 인증 -->
+        <div id="auth-container" class="desktop-auth">
+          <button id="loginBtn" class="auth-btn" onclick="openAuthModal()">로그인/회원가입</button>
         </div>
-        <div id="user-info" style="display: none;"></div>
+        <div id="user-info" class="desktop-user" style="display: none;"></div>
       </nav>
+      
+      <!-- 모바일 메뉴 오버레이 -->
+      <div class="mobile-menu-overlay" id="mobileMenuOverlay">
+          <div class="mobile-menu-content">
+              <div class="mobile-menu-header">
+                  <h3>메뉴</h3>
+                  <button class="mobile-menu-close" onclick="toggleMobileMenu()">
+                      <i class="fas fa-times"></i>
+                  </button>
+              </div>
+              
+                              <ul class="mobile-nav-menu">
+                    <li class="mobile-nav-item">
+                        <a href="club.html" class="mobile-nav-link" onclick="toggleMobileMenu()">
+                            <i class="fas fa-home"></i>
+                            <span>홈</span>
+                        </a>
+                    </li>
+                    <li class="mobile-nav-item">
+                        <a href="club-list.html" class="mobile-nav-link" onclick="toggleMobileMenu()">
+                            <i class="fas fa-list"></i>
+                            <span>동아리 목록</span>
+                        </a>
+                    </li>
+                    <li class="mobile-nav-item">
+                        <a href="club-register.html" class="mobile-nav-link" onclick="toggleMobileMenu()">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>동아리 등록</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- 부용관으로 돌아가기 (맨 아래) -->
+                <div class="mobile-back-section">
+                    <a href="buyong.html" class="mobile-nav-link back-link" onclick="toggleMobileMenu()">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>부용관으로 돌아가기</span>
+                    </a>
+                </div>
+              
+              <!-- 모바일 인증 -->
+              <div class="mobile-auth-section">
+                  <div id="mobile-auth-container">
+                      <button class="mobile-auth-btn" onclick="openAuthModal(); toggleMobileMenu();">
+                          <i class="fas fa-sign-in-alt"></i>
+                          <span>로그인/회원가입</span>
+                      </button>
+                  </div>
+                  <div id="mobile-user-info" style="display: none;"></div>
+              </div>
+          </div>
+      </div>
     </div>
   </header>
-    <div class="club-search-filter">
-      <input type="text" id="club-home-search-input" placeholder="동아리 이름/소개 검색...">
-    </div>
     <main class="club-list-area" style="margin-top: 80px;">
       <div class="home-section">
         <h2 class="section-title">최근 등록된 동아리</h2>
